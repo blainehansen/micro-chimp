@@ -1,0 +1,29 @@
+version: '3'
+services:
+  # api:
+  #   image: micro_email_collector
+  #   links:
+  #     - database
+  #   ports:
+  #     - "5050:5050"
+  #   # volumes:
+  #   #   - ./.configs/.env.launch.dev.sh:/env/.env
+  #   #   - ./.configs/.keys.go.sh:/keys/.keys
+  #   #   - ./.configs/.keys.go-db.txt:/keys/.db-key
+  #   #   - ./launch:/go/src/main
+  #   # working_dir: /go/src/main
+  #   # command: reflex -g '*.go' -G '*_test.go' --start-service=true -- sh -c "go run -tags=jsoniter *.go"
+  #   tty: true
+
+  database:
+    image: postgres:11-alpine
+    environment:
+      - POSTGRES_DB=database
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=asdf
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      # - ./.configs/.keys.go-db.txt:/keys/.go-db-key
+    command: postgres -c 'max_wal_size=2GB'

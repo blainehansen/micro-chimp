@@ -1,0 +1,22 @@
+[package]
+name = "micro-email-signup"
+version = "0.1.0"
+authors = ["Blaine Hansen <faichenshing@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+log = "0.4"
+pretty_env_logger = "0.3"
+
+futures = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# checkmail = "0.1"
+
+actix = "0.7"
+actix-web = "0.7"
+tokio-postgres = "0.4.0-rc.2"
+
+rand = "0.6"
+base64 = "0.10"
