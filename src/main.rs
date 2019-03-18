@@ -16,7 +16,7 @@ extern crate tokio_postgres;
 
 use actix::prelude::*;
 use actix_web::{
-	http::StatusCode, server, App, AsyncResponder, FutureResponse, HttpMessage, HttpRequest, HttpResponse, Json
+	http::StatusCode, server, App, AsyncResponder, HttpMessage, HttpRequest, HttpResponse
 };
 use futures::Future;
 // use rand::{thread_rng, Rng, ThreadRng};
