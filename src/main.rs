@@ -16,7 +16,7 @@ extern crate tokio_postgres;
 
 use actix::prelude::*;
 use actix_web::{
-	http::StatusCode, server, App, AsyncResponder, HttpMessage, HttpRequest, HttpResponse
+	client as http_client, http::StatusCode, server, App, AsyncResponder, HttpMessage, HttpRequest, HttpResponse
 };
 use futures::Future;
 // use rand::{thread_rng, Rng, ThreadRng};
@@ -77,6 +77,28 @@ struct NewEmail {
 	service: String,
 }
 
+// impl NewEmail {
+// 	fn make_insert_query() -> &'static str {
+// 		"insert into emails (email, validation_token) values ($1, $2)"
+// 	}
+
+// 	// if services are enabled
+// 	// fn make_insert_query(&self) -> &'static str {
+// 	// 	"insert into emails (email, service, validation_token) values ($1, $2, $3)"
+// 	// }
+
+// 	fn make_insert_args(&self, validation_token: &str) -> [&str; 2] {
+// 		[&self.email, validation_token]
+// 	}
+
+// 	// if services are enabled
+// 	// fn make_insert_args(&self, validation_token: &str) -> [&str; 3] {
+// 	// 	[&self.email, &self.service, validation_token]
+// 	// }
+// }
+
+// create type as service_enum as ('Crowdsell', 'Blog');
+
 // #[derive(Debug, Serialize, Deserialize)]
 // struct ValidationToken {
 // 	token: String,
@@ -95,7 +117,9 @@ impl Handler<NewEmail> for PgConnection {
 		Box::new(
 			self.client
 				.as_mut().unwrap()
+				// .execute(self.insert_new_email.as_ref().unwrap(), &(n.make_insert_args(validation_token)))
 				.execute(self.insert_new_email.as_ref().unwrap(), &[&n.email, &n.service])
+				// maybe add a map_err?
 				.and_then(|rows| {
 					println!("{:?}", rows);
 					Ok(())
@@ -113,12 +137,49 @@ fn new_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Error
 	req.json()
 		.from_err()
 		.and_then(move |v: NewEmail| {
+			// // here is where we validate email
+			// info!("about to validate");
+			// if !checkmail::validate_email(&r.email) {
+			// 	// this has to do the right thing
+			// 	// Ok(HttpResponse::with_body(StatusCode::NO_CONTENT, actix_web::Body::Empty))
+			// 	return empty_status(StatusCode::BAD_REQUEST);
+			// }
+
+			// then we perform the insert
 			db.send(v)
 				.then(|res| match res {
 					Ok(_) => Ok(HttpResponse::with_body(StatusCode::NO_CONTENT, actix_web::Body::Empty)),
 					Err(_) => Ok(HttpResponse::with_body(StatusCode::INTERNAL_SERVER_ERROR, actix_web::Body::Empty)),
 				})
-		}).responder()
+			// we handle the constraint error if there is one
+
+			// after that, create the validation url and message body
+
+			// send that off
+
+			// server_domain = "crowdsell.io"
+			// mail_private_api_key
+			// mail_public_key
+			#[derive(Debug, Serialize, Deserialize)]
+			struct MailgunForm<'static, 'f> {
+				from: &'static str,
+				to: &'f str,
+				subject: &'static str,
+				text: &'f str,
+			}
+
+			let text = format!("Hello! Thank you for signing up to join the Crowdsell private beta.\n\nClick this link to validate your email: \nhttps://crowdsell.io/recover-password?t={}", validation_token)
+
+			// have to format "api:api_key" into url?
+			http_client::post("https://api.mailgun.net/v3/YOUR_DOMAIN_NAME/messages")
+				.form(MailgunForm {
+					from: "<no-reply@crowdsell.io>",
+					to: &v.email,
+					subject: "Crowdsell - Validation Email",
+					text: text,
+				})
+		})
+		.responder()
 }
 
 

@@ -7,7 +7,7 @@ create extension citext;
 
 create table emails (
 	email citext unique check (email ~* '^.+@.+\..+$'),
-	-- site site_name not null,
+	site site_name not null,
 	validation_token text unique
 );
 
