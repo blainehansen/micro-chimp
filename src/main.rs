@@ -218,13 +218,6 @@ struct MailgunForm {
 }
 
 
-// struct MailgunForm<'f> {
-// 	from: &'static str,
-// 	to: &'f str,
-// 	subject: &'static str,
-// 	text: &'f str,
-// }
-
 fn new_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Error = GenericError> {
 	let db = req.state().db.clone();
 	req.json()
@@ -295,28 +288,3 @@ fn main() {
 	info!("Started http server: 127.0.0.1:5050");
 	let _ = sys.run();
 }
-
-
-
-// use actix_web::{actix, client};
-// use futures::future::Future;
-
-
-// fn main() {
-// 	actix::run(
-// 		do_thing()
-// 			.and_then(|response| {
-// 				println!("Response: {:?}", response);
-// 				Ok(response)
-// 			})
-// 	);
-// }
-
-
-// fn do_thing() -> impl Future<Item = actix_web::client::ClientResponse, Error = ()> {
-// 	client::get("http://www.rust-lang.org")
-// 		.header("User-Agent", "Actix-web")
-// 		.finish().unwrap()
-// 		.send()
-// 		.map_err(|_| ())
-// }
