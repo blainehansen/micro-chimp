@@ -1,9 +1,7 @@
 use rand::Rng;
 use rand::rngs::OsRng;
 
-// use serde::{Deserialize, Serialize};
-
-fn generate_random_token() -> Option<String> {
+pub fn generate_random_token() -> Option<String> {
 	let mut r = OsRng::new().ok()?;
 	let mut buf: [u8; 64] = [0; 64];
 	r.fill(&mut buf);

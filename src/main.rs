@@ -1,35 +1,42 @@
 extern crate pretty_env_logger;
 #[macro_use] extern crate log;
 
+#[macro_use] extern crate derive_error;
+
 extern crate actix;
 extern crate actix_web;
 extern crate futures;
 
 extern crate serde;
 extern crate serde_json;
-// extern crate checkmail;
+extern crate checkmail;
 
 extern crate tokio_postgres;
 
-// extern crate rand;
-// extern crate base64;
+// #[macro_use] extern crate postgres;
+// #[macro_use] extern crate postgres_derive;
+
+extern crate rand;
+extern crate base64;
 
 use actix::prelude::*;
 use actix_web::{
-	client as http_client, http::StatusCode, server, App, AsyncResponder, HttpMessage, HttpRequest, HttpResponse
+	client as http_client, http::StatusCode, server, App, AsyncResponder,
+	HttpMessage, HttpRequest, HttpResponse, error::ResponseError,
 };
-use futures::Future;
-// use rand::{thread_rng, Rng, ThreadRng};
+use futures::{Future, future};
 
-// mod utils;
-// use utils::{generate_random_token, NewEmail, ValidationToken};
+mod utils;
+use utils::generate_random_token;
 
 use serde::{Deserialize, Serialize};
 
-
+// use tokio_postgres::{Client, Statement, types::{ToSql as TokioToSql, FromSql as TokioFromSql}};
 use tokio_postgres::{Client, Statement};
+// use postgres::{types::{ToSql, FromSql, IsNull, Type}};
 
-pub struct PgConnection {
+
+struct PgConnection {
 	client: Option<Client>,
 	insert_new_email: Option<Statement>,
 }
@@ -52,7 +59,7 @@ impl PgConnection {
 				.into_actor(&act)
 				.and_then(|(mut client, conn), act, ctx| {
 					ctx.wait(
-						client.prepare("insert into emails (email, validation_token) values ($1, $2)")
+						client.prepare("insert into emails (email, site_name, validation_token) values ($1, $2, $3)")
 							.map_err(|_| ())
 							.into_actor(act)
 							.and_then(|statement, act, _| {
@@ -64,65 +71,180 @@ impl PgConnection {
 					act.client = Some(client);
 					Arbiter::spawn(conn.map_err(|e| panic!("{}", e)));
 					fut::ok(())
-				}).wait(ctx);
+				})
+				.wait(ctx);
 
 			act
 		})
 	}
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct NewEmail {
-	email: String,
-	service: String,
+
+fn empty_status(code: StatusCode) -> HttpResponse {
+	HttpResponse::with_body(code, actix_web::Body::Empty)
 }
 
-// impl NewEmail {
-// 	fn make_insert_query() -> &'static str {
-// 		"insert into emails (email, validation_token) values ($1, $2)"
-// 	}
 
-// 	// if services are enabled
-// 	// fn make_insert_query(&self) -> &'static str {
-// 	// 	"insert into emails (email, service, validation_token) values ($1, $2, $3)"
-// 	// }
+#[derive(Debug, Error)]
+enum GenericError {
+	NoContent,
+	BadRequest,
+	Unprocessable,
+	InternalServer,
+}
 
-// 	fn make_insert_args(&self, validation_token: &str) -> [&str; 2] {
-// 		[&self.email, validation_token]
-// 	}
+impl ResponseError for GenericError {
+	fn error_response(&self) -> HttpResponse {
+		match *self {
+			GenericError::NoContent => empty_status(StatusCode::NO_CONTENT),
+			GenericError::BadRequest => empty_status(StatusCode::BAD_REQUEST),
+			GenericError::Unprocessable => empty_status(StatusCode::UNPROCESSABLE_ENTITY),
+			GenericError::InternalServer => empty_status(StatusCode::INTERNAL_SERVER_ERROR),
+		}
+	}
+}
 
-// 	// if services are enabled
-// 	// fn make_insert_args(&self, validation_token: &str) -> [&str; 3] {
-// 	// 	[&self.email, &self.service, validation_token]
-// 	// }
+
+impl From<tokio_postgres::Error> for GenericError {
+	fn from(error: tokio_postgres::Error) -> Self {
+		let c = error.code();
+		if c == Some(&tokio_postgres::error::SqlState::INTEGRITY_CONSTRAINT_VIOLATION) {
+			GenericError::NoContent
+		}
+		else if c == Some(&tokio_postgres::error::SqlState::UNIQUE_VIOLATION) {
+			GenericError::BadRequest
+		}
+		else {
+			GenericError::InternalServer
+		}
+	}
+}
+
+impl From<actix::MailboxError> for GenericError {
+	fn from(_: actix::MailboxError) -> Self {
+		GenericError::InternalServer
+	}
+}
+
+
+// #[derive(Debug, ToSql, FromSql, Serialize, Deserialize)]
+// #[postgres(name = "site_name_type")]
+// enum SiteName {
+// 	#[postgres(name = "crowdsell")]
+// 	Crowdsell,
+// 	#[postgres(name = "blog")]
+// 	Blog,
 // }
 
-// create type as service_enum as ('Crowdsell', 'Blog');
+
+// impl TokioToSql for SiteName {
+// 	fn to_sql(&self, ty: &Type, out: &mut Vec<u8>) -> Result<IsNull, Box<dyn std::error::Error + Sync + Send>> {
+// 		self.to_sql(ty, out)
+// 	}
+
+// 	fn accepts(ty: &Type) -> bool {
+// 		SiteName::accepts(ty)
+// 	}
+
+// 	fn to_sql_checked(&self, ty: &Type, out: &mut Vec<u8>) -> Result<IsNull, Box<dyn std::error::Error + Sync + Send>> {
+// 		self.to_sql_checked(ty, out)
+// 	}
+// }
+
+// impl<'a> TokioFromSql<'a> for SiteName {
+// 	fn from_sql(ty: &Type,  raw: &'a [u8]) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
+// 		SiteName::from_sql(ty, raw)
+// 	}
+
+// 	fn accepts(ty: &Type) -> bool {
+// 		SiteName::accepts(ty)
+// 	}
+// }
+
+
+#[derive(Debug, Serialize, Deserialize)]
+struct NewEmailMessage {
+	email: String,
+	site_name: String,
+}
+
+#[derive(Debug)]
+struct NewEmailInsert {
+	email: String,
+	site_name: String,
+	validation_token: String,
+	// unsubscribe_token: String,
+}
+
+
+impl NewEmailMessage {
+	// fn make_insert_query() -> &'static str {
+	// 	"insert into emails (email, validation_token) values ($1, $2)"
+	// }
+
+	fn into_insert(self) -> Result<NewEmailInsert, GenericError> {
+		let validation_token = generate_random_token().ok_or(GenericError::InternalServer)?;
+
+		Ok(NewEmailInsert {
+			email: self.email,
+			site_name: self.site_name,
+			validation_token,
+		})
+	}
+
+	// if site_names are enabled
+	// fn make_insert_query(&self) -> &'static str {
+	// 	"insert into emails (email, site_name, validation_token) values ($1, $2, $3)"
+	// }
+
+	// fn make_insert_args(&self, validation_token: &str) -> [&str; 2] {
+	// 	[&self.email, validation_token]
+	// }
+
+	// if site_names are enabled
+	// fn make_insert_args(&self, validation_token: &str) -> [&str; 3] {
+	// 	[&self.email, &self.site_name, validation_token]
+	// }
+}
+
 
 // #[derive(Debug, Serialize, Deserialize)]
 // struct ValidationToken {
 // 	token: String,
 // }
 
-// tokio_postgres::error::SqlState::INTEGRITY_CONSTRAINT_VIOLATION
 
-impl Message for NewEmail {
-	type Result = Result<(), tokio_postgres::error::Error>;
+impl Message for NewEmailMessage {
+	type Result = Result<NewEmailInsert, GenericError>;
 }
 
-impl Handler<NewEmail> for PgConnection {
-	type Result = ResponseFuture<(), tokio_postgres::error::Error>;
+impl Handler<NewEmailMessage> for PgConnection {
+	type Result = ResponseFuture<NewEmailInsert, GenericError>;
 
-	fn handle(&mut self, n: NewEmail, _: &mut Self::Context) -> Self::Result {
+	fn handle(&mut self, msg: NewEmailMessage, _: &mut Self::Context) -> Self::Result {
+		let insert_row = match dbg!(msg).into_insert() {
+			Ok(i) => i,
+			Err(e) => {
+				return Box::new(future::err(e));
+			},
+		};
+
 		Box::new(
 			self.client
 				.as_mut().unwrap()
-				// .execute(self.insert_new_email.as_ref().unwrap(), &(n.make_insert_args(validation_token)))
-				.execute(self.insert_new_email.as_ref().unwrap(), &[&n.email, &n.service])
-				// maybe add a map_err?
-				.and_then(|rows| {
-					println!("{:?}", rows);
-					Ok(())
+				// .execute(self.insert_new_email.as_ref().unwrap(), &(insert_row.make_insert_args()))
+				.execute(self.insert_new_email.as_ref().unwrap(), &[&insert_row.email, &insert_row.site_name, &insert_row.validation_token])
+				.map_err(|e| dbg!(e))
+				.from_err()
+				.and_then(move |rows| {
+					println!("rows: {:?}", rows);
+					if rows <= 0 {
+						return future::err(GenericError::NoContent);
+					}
+					if rows >= 2 {
+						return future::err(GenericError::InternalServer);
+					}
+					future::ok(insert_row)
 				})
 		)
 	}
@@ -132,61 +254,77 @@ struct State {
 	db: Addr<PgConnection>,
 }
 
-fn new_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Error = actix_web::error::Error> {
+
+// server_domain = "crowdsell.io"
+// mail_private_api_key
+// mail_public_key
+#[derive(Debug, Serialize, Deserialize)]
+struct MailgunForm {
+	from: String,
+	to: String,
+	subject: String,
+	text: String,
+}
+
+
+// struct MailgunForm<'f> {
+// 	from: &'static str,
+// 	to: &'f str,
+// 	subject: &'static str,
+// 	text: &'f str,
+// }
+
+fn new_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Error = GenericError> {
 	let db = req.state().db.clone();
 	req.json()
-		.from_err()
-		.and_then(move |v: NewEmail| {
-			// // here is where we validate email
-			// info!("about to validate");
-			// if !checkmail::validate_email(&r.email) {
-			// 	// this has to do the right thing
-			// 	// Ok(HttpResponse::with_body(StatusCode::NO_CONTENT, actix_web::Body::Empty))
-			// 	return empty_status(StatusCode::BAD_REQUEST);
-			// }
-
-			// then we perform the insert
-			db.send(v)
-				.then(|res| match res {
-					Ok(_) => Ok(HttpResponse::with_body(StatusCode::NO_CONTENT, actix_web::Body::Empty)),
-					Err(_) => Ok(HttpResponse::with_body(StatusCode::INTERNAL_SERVER_ERROR, actix_web::Body::Empty)),
-				})
-			// we handle the constraint error if there is one
-
-			// after that, create the validation url and message body
-
-			// send that off
-
-			// server_domain = "crowdsell.io"
-			// mail_private_api_key
-			// mail_public_key
-			#[derive(Debug, Serialize, Deserialize)]
-			struct MailgunForm<'static, 'f> {
-				from: &'static str,
-				to: &'f str,
-				subject: &'static str,
-				text: &'f str,
-			}
-
-			let text = format!("Hello! Thank you for signing up to join the Crowdsell private beta.\n\nClick this link to validate your email: \nhttps://crowdsell.io/recover-password?t={}", validation_token)
-
-			// have to format "api:api_key" into url?
-			http_client::post("https://api.mailgun.net/v3/YOUR_DOMAIN_NAME/messages")
-				.form(MailgunForm {
-					from: "<no-reply@crowdsell.io>",
-					to: &v.email,
-					subject: "Crowdsell - Validation Email",
-					text: text,
+		.map_err(|e| match e {
+			actix_web::error::JsonPayloadError::Deserialize(_) => GenericError::Unprocessable,
+			_ => GenericError::BadRequest,
+		})
+		.and_then(move |msg: NewEmailMessage| {
+			validate_email(msg)
+				.and_then(move |msg| {
+					db.send(msg)
+						.from_err()
+						.and_then(|msgr| msgr.and_then(send_mail))
 				})
 		})
 		.responder()
 }
 
 
+fn send_mail(msg: NewEmailInsert) -> impl Future<Item = HttpResponse, Error = GenericError> {
+	// have to format "api:api_key" into url?
+	let request: actix_web::client::ClientRequest = http_client::post("https://api.mailgun.net/v3/YOUR_DOMAIN_NAME/messages")
+		.form(MailgunForm {
+			from: "<no-reply@crowdsell.io>".to_string(),
+			to: msg.email,
+			subject: "Crowdsell - Validation Email".to_string(),
+			text: format!("Hello! Thank you for signing up to join the Crowdsell private beta.\n\nClick this link to validate your email:\nhttps://crowdsell.io/validate-email?t={}", msg.validation_token),
+		})
+		.unwrap();
+
+	request
+		.send()
+		// .map_err(|e| { dbg!(e); GenericError::InternalServer })
+		.and_then(|r| {
+			dbg!(r);
+			future::ok(empty_status(StatusCode::NO_CONTENT))
+		})
+}
+
+fn validate_email(msg: NewEmailMessage) -> impl Future<Item = NewEmailMessage, Error = GenericError> {
+	match checkmail::validate_email(&msg.email) {
+		true => future::ok(msg),
+		false => future::err(GenericError::BadRequest),
+	}
+}
+
 fn main() {
+	std::env::set_var("RUST_LOG", "micro_chimp=info");
 	pretty_env_logger::init();
 
-	let sys = System::new("micro_email_collector");
+	let sys = System::new("micro_chimp");
 	let db_url = "postgres://user:asdf@localhost/database";
 
 	// start http server

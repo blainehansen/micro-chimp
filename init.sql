@@ -3,11 +3,12 @@ create extension citext;
 -- \set rust_server_password `sed 's/^[ \t]*//;s/[ \t]*$//' < /keys/.go-db-key`
 -- create role rust_server_user login password :'rust_server_password';
 
--- create type site_name as enum('crowdsell', 'blog');
+-- create type site_name_type as enum('crowdsell', 'blog');
 
 create table emails (
 	email citext unique check (email ~* '^.+@.+\..+$'),
-	site site_name not null,
+	site_name text not null check (site_name in ('crowdsell', 'blog')),
+	-- unsubscribe_token text unique
 	validation_token text unique
 );
 
