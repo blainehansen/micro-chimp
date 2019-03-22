@@ -1,5 +1,5 @@
-pub const NEW_EMAIL_QUERY = "insert into emails (email, validation_token, site_name) values ($1, $2, $3)";
-pub const VERIFY_QUERY = "update emails set validation_token = null where validation_token = $1";
+pub const NEW_EMAIL_QUERY: &'static str = "insert into emails (email, validation_token, site_name) values ($1, $2, $3)";
+pub const VERIFY_QUERY: &'static str = "update emails set validation_token = null where validation_token = $1";
 
 // pub const MAILGUN_URL = "https://api.mailgun.net/v3/crowdsell.io/messages";
 
