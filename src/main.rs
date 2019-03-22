@@ -104,7 +104,7 @@ impl PgConnection {
 				.and_then(|(mut client, connection), act, ctx| {
 					ctx.wait(
 						client.prepare(NEW_EMAIL_QUERY)
-							.map_err(|_| ())
+							.map_err(|_| panic!("couldn't prepare NEW_EMAIL_QUERY"))
 							.into_actor(act)
 							.and_then(|statement, act, _| {
 								act.insert_new_email = Some(statement);
@@ -114,7 +114,7 @@ impl PgConnection {
 
 					ctx.wait(
 						client.prepare(VERIFY_QUERY)
-							.map_err(|_| ())
+							.map_err(|_| panic!("couldn't prepare VERIFY_QUERY"))
 							.into_actor(act)
 							.and_then(|statement, act, _| {
 								act.verify_existing = Some(statement);
