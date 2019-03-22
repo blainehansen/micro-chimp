@@ -27,7 +27,9 @@ use actix_web::{
 use futures::{Future, future, IntoFuture};
 
 mod utils;
-use utils::generate_random_token;
+use utils::{generate_random_token, base64_encode, base64_decode};
+
+mod args;
 
 use serde::{Deserialize, Serialize};
 
@@ -39,10 +41,15 @@ use tokio_postgres::{Client, Statement};
 struct PgConnection {
 	client: Option<Client>,
 	insert_new_email: Option<Statement>,
+	verify_existing: Option<Statement>,
 }
 
 impl Actor for PgConnection {
 	type Context = Context<Self>;
+}
+
+struct State {
+	db: Addr<PgConnection>,
 }
 
 impl PgConnection {
@@ -53,17 +60,48 @@ impl PgConnection {
 			let act = PgConnection {
 				client: None,
 				insert_new_email: None,
+				verify_existing: None,
 			};
+
+			// let (client, [insert_new_email, verify_existing]) = hs
+			// 	.map_err(|_| panic!("{:?}", ))
+			// 	.and_then(|mut client, conn| {
+			// 		Arbiter::spawn(conn.map_err(|e| panic!("{}", e)));
+
+			// 		future::join_all([
+			// 			client.prepare(args::NEW_EMAIL_QUERY)
+			// 				.map_err(|_| panic!("{:?}", )),
+			// 			client.prepare(args::VERIFY_QUERY)
+			// 				.map_err(|_| panic!("{:?}", )),
+			// 		])
+			// 			.map_err(|_| panic!("{:?}", ))
+			// 			.and_then(move |statements| {
+			// 				fut::ok((client, statements))
+			// 			})
+			// 	})
+			// 	.wait(ctx);
+
+			// PgConnection { client, insert_new_email, verify_existing }
 
 			hs.map_err(|_| panic!("can not connect to postgresql"))
 				.into_actor(&act)
 				.and_then(|(mut client, conn), act, ctx| {
 					ctx.wait(
-						client.prepare("insert into emails (email, site_name, validation_token) values ($1, $2, $3)")
+						client.prepare(args::NEW_EMAIL_QUERY)
 							.map_err(|_| ())
 							.into_actor(act)
 							.and_then(|statement, act, _| {
 								act.insert_new_email = Some(statement);
+								fut::ok(())
+							})
+					);
+
+					ctx.wait(
+						client.prepare(args::VERIFY_QUERY)
+							.map_err(|_| ())
+							.into_actor(act)
+							.and_then(|statement, act, _| {
+								act.verify_existing = Some(statement);
 								fut::ok(())
 							})
 					);
@@ -82,6 +120,10 @@ impl PgConnection {
 
 fn empty_status(code: StatusCode) -> HttpResponse {
 	HttpResponse::with_body(code, actix_web::Body::Empty)
+}
+
+fn respond_success() -> Result<HttpResponse, GenericError> {
+	Ok(empty_status(StatusCode::NO_CONTENT))
 }
 
 
@@ -126,6 +168,14 @@ impl From<actix::MailboxError> for GenericError {
 	}
 }
 
+impl From<actix_web::error::JsonPayloadError> for GenericError {
+	fn from(error: actix_web::error::JsonPayloadError) -> Self {
+		match error {
+			actix_web::error::JsonPayloadError::Deserialize(_) => GenericError::Unprocessable,
+			_ => GenericError::BadRequest,
+		}
+	}
+}
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -164,11 +214,6 @@ impl NewEmailMessage {
 }
 
 
-// #[derive(Debug, Serialize, Deserialize)]
-// struct ValidationToken {
-// 	token: String,
-// }
-
 
 impl Message for NewEmailMessage {
 	type Result = Result<NewEmailInsert, GenericError>;
@@ -188,7 +233,7 @@ impl Handler<NewEmailMessage> for PgConnection {
 		Box::new(
 			self.client
 				.as_mut().unwrap()
-				// .execute(self.insert_new_email.as_ref().unwrap(), &(insert_row.make_insert_args()))
+				// .execute(self.insert_new_email.as_ref().unwrap(), insert_row.make_insert_args().as_ref())
 				.execute(self.insert_new_email.as_ref().unwrap(), &[&insert_row.email, &insert_row.site_name, &insert_row.validation_token])
 				.into_future()
 				.from_err()
@@ -199,10 +244,6 @@ impl Handler<NewEmailMessage> for PgConnection {
 				})
 		)
 	}
-}
-
-struct State {
-	db: Addr<PgConnection>,
 }
 
 
@@ -218,16 +259,18 @@ struct MailgunForm {
 }
 
 
+// NewEmailJsonInput
+
+
 fn new_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Error = GenericError> {
 	let db = req.state().db.clone();
 	req.json()
-		.map_err(|e| match e {
-			actix_web::error::JsonPayloadError::Deserialize(_) => GenericError::Unprocessable,
-			_ => GenericError::BadRequest,
-		})
-		.and_then(move |msg: NewEmailMessage| {
-			validate_email(msg)
-				.and_then(move |msg| {
+		.from_err()
+		.and_then(move |json_input: NewEmailJsonInput| {
+			json_input.translate()
+				.into_future()
+				.from_err()
+				.and_then(|msg| {
 					db.send(msg)
 						.from_err()
 						.and_then(|msg_res| {
@@ -245,10 +288,91 @@ fn new_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Error
 										.unwrap()
 										.send()
 										.map_err(|e| { dbg!(e); GenericError::InternalServer })
-										.and_then(|_| Ok(empty_status(StatusCode::NO_CONTENT)))
-								})
+										.and_then(|_| respond_success())
+									})
 						})
 				})
+		})
+		.responder()
+
+		// .and_then(move |msg: NewEmailMessage| {
+		// 	validate_email(msg)
+		// 		.and_then(move |msg| {
+		// 			db.send(msg)
+		// 				.from_err()
+		// 				.and_then(|msg_res| {
+		// 					msg_res
+		// 						.into_future()
+		// 						.from_err()
+		// 						.and_then(|msg| {
+		// 						})
+		// 				})
+		// 		})
+		// })
+}
+
+
+
+#[derive(Debug, Serialize, Deserialize)]
+struct VerifyEmailJsonInput {
+	encoded_validation_token: String,
+}
+
+impl VerifyEmailJsonInput {
+	fn decode(self) -> Result<VerifyEmailMessage, GenericError> {
+		let validation_token = base64_decode(self.encoded_validation_token).ok_or(GenericError::BadRequest)?;
+		Ok(VerifyEmailMessage { validation_token })
+	}
+}
+
+#[derive(Debug)]
+struct VerifyEmailMessage {
+	validation_token: String,
+}
+
+impl Message for VerifyEmailMessage {
+	type Result = Result<(), GenericError>;
+}
+
+impl Handler<VerifyEmailMessage> for PgConnection {
+	type Result = ResponseFuture<(), GenericError>;
+
+	fn handle(&mut self, msg: VerifyEmailMessage, _: &mut Self::Context) -> Self::Result {
+		Box::new(
+			self.client
+				.as_mut().unwrap()
+				// .execute(self.verify_existing.as_ref().unwrap(), &(insert_row.make_insert_args()))
+				.execute(self.verify_existing.as_ref().unwrap(), &[&msg.validation_token])
+				.into_future()
+				.from_err()
+				.and_then(move |rows| match rows {
+					1 => Ok(()),
+					0 => Err(GenericError::NoContent),
+					_ => Err(GenericError::InternalServer),
+				})
+		)
+	}
+}
+
+
+
+fn verify_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Error = GenericError> {
+	let db = req.state().db.clone();
+	req.json()
+		.from_err()
+		.and_then(move |msg: VerifyEmailJsonInput| {
+			msg.decode()
+				.into_future()
+				.and_then(move |msg| {
+					db.send(msg)
+						.from_err()
+						.and_then(|msg_res| {
+							msg_res
+								.into_future()
+								.from_err()
+								.and_then(|_| respond_success())
+						})
+					})
 		})
 		.responder()
 }
@@ -279,6 +403,7 @@ fn main() {
 
 		App::with_state(State { db: addr })
 			.resource("/new-email", |r| r.post().a(new_email))
+			.resource("/verify-email", |r| r.post().a(verify_email))
 	})
 		// .backlog(8192)
 		.bind("127.0.0.1:5050")
