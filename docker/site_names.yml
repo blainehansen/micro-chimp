@@ -1,0 +1,8 @@
+crowdsell.io:
+  from_email: no-reply@crowdsell.io
+  subject_text: "Crowdsell - Validation Email"
+  body_text: |
+    Hello! Thank you for signing up to join the Crowdsell private beta.
+
+    Click this link to validate your email:
+    https://crowdsell.io/validate-email?t={verification_token}
