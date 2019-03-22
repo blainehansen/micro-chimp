@@ -47,12 +47,10 @@ fn generate_random_token() -> Option<String> {
 	let mut buf: [u8; 64] = [0; 64];
 	r.fill(&mut buf);
 
-	// Some(base64_encode(buf))
 	Some(base64_encode(&buf[..]))
 }
 
 // mod args;
-
 
 pub const NEW_EMAIL_QUERY: &'static str = "insert into emails (email, validation_token, site_name) values ($1, $2, $3)";
 pub const VERIFY_QUERY: &'static str = "update emails set validation_token = null where validation_token = $1";
