@@ -8,7 +8,7 @@ extern crate actix_web;
 extern crate futures;
 use actix::prelude::*;
 use actix_web::{
-	client as http_client, http::StatusCode, server, App, AsyncResponder,
+	client as http_client, http::{StatusCode, header::HeaderValue}, server, App, AsyncResponder,
 	HttpMessage, HttpRequest, HttpResponse, error::ResponseError,
 };
 // use futures::{future, Future, IntoFuture};
@@ -16,21 +16,20 @@ use futures::{Future, IntoFuture};
 
 extern crate serde;
 extern crate serde_json;
-// use serde::{Serialize, Deserialize, Serializer, Deserializer};
 use serde::{Serialize, Deserialize, Deserializer};
 
 extern crate tokio_postgres;
 use tokio_postgres::{Client, Statement};
-// use tokio_postgres::{Client, Statement, types::ToSql};
-// use tokio_postgres::{Connection, stmt::Statement, types::ToSql};
+// use tokio_postgres::{Connection, stmt::Statement};
 
-#[macro_use]
-extern crate validator_derive;
+#[macro_use] extern crate validator_derive;
 extern crate validator;
 use validator::Validate;
 
-#[macro_use] extern crate postgres;
-#[macro_use] extern crate postgres_derive;
+#[macro_use] extern crate lazy_static;
+
+// #[macro_use] extern crate postgres;
+// #[macro_use] extern crate postgres_derive;
 
 extern crate base64;
 
@@ -38,22 +37,21 @@ extern crate rand;
 use rand::Rng;
 use rand::rngs::OsRng;
 
+mod sites;
+use sites::SiteName;
+
+
 fn base64_encode(s: &[u8]) -> String {
 	base64::encode_config(s, base64::URL_SAFE)
 }
 
-fn generate_random_token() -> Option<String> {
+pub fn generate_random_token() -> Option<String> {
 	let mut r = OsRng::new().ok()?;
 	let mut buf: [u8; 64] = [0; 64];
 	r.fill(&mut buf);
 
 	Some(base64_encode(&buf[..]))
 }
-
-// mod args;
-
-pub const NEW_EMAIL_QUERY: &'static str = "insert into emails (email, validation_token, site_name) values ($1, $2, $3)";
-pub const VERIFY_QUERY: &'static str = "update emails set validation_token = null where validation_token = $1";
 
 // struct PgConnection {
 // 	client: Client,
@@ -71,9 +69,8 @@ impl Actor for PgConnection {
 	type Context = Context<Self>;
 }
 
-struct State {
-	db: Addr<PgConnection>,
-}
+const NEW_EMAIL_QUERY: &'static str = "insert into emails (email, validation_token, site_name) values ($1, $2, $3)";
+const VERIFY_QUERY: &'static str = "update emails set validation_token = null where validation_token = $1";
 
 impl PgConnection {
 	pub fn connect(db_url: &str) -> Addr<PgConnection> {
@@ -86,9 +83,9 @@ impl PgConnection {
 			// 		Arbiter::spawn(conn.map_err(|e| panic!("{}", e)));
 
 			// 		future::join(
-			// 			client.prepare(args::NEW_EMAIL_QUERY)
+			// 			client.prepare(sites::NEW_EMAIL_QUERY)
 			// 				.map_err(|_| panic!("{:?}", "couldn't prepare NEW_EMAIL_QUERY")),
-			// 			client.prepare(args::VERIFY_QUERY)
+			// 			client.prepare(sites::VERIFY_QUERY)
 			// 				.map_err(|_| panic!("{:?}", "couldn't prepare VERIFY_QUERY")),
 			// 		)
 			// 			.map_err(|_| panic!("{:?}", "join future failed"))
@@ -144,7 +141,7 @@ fn respond_success() -> Result<HttpResponse, GenericError> {
 
 
 #[derive(Debug, Error)]
-enum GenericError {
+pub enum GenericError {
 	NoContent,
 	BadRequest,
 	Unprocessable,
@@ -193,51 +190,17 @@ impl From<actix_web::error::JsonPayloadError> for GenericError {
 	}
 }
 
-// impl From<ValidationError> for GenericError {
-// 	fn from(_: ValidationError) -> Self {
-// 		GenericError::BadRequest
-// 	}
-// }
-
-
-#[derive(Debug, ToSql, Deserialize)]
-#[postgres(name = "site_name_enum")]
-enum SiteName {
-	#[postgres(name = "crowdsell")]
-	Crowdsell,
-	#[postgres(name = "blog")]
-	Blog,
-}
 
 // mail_private_api_key
 // mail_public_key
 #[derive(Debug, Serialize)]
-struct MailgunForm {
+pub struct MailgunForm {
 	from: String,
 	to: String,
 	subject: String,
 	text: String,
 }
 
-impl SiteName {
-	fn get_site_information(self, to: String) -> (String, String, MailgunForm) {
-		use SiteName::*;
-		match self {
-			Crowdsell => ("https://api.mailgun.net/v3/crowdsell.io/messages".to_string(), "crowdsell".to_string(), MailgunForm {
-				from: "<no-reply@crowdsell.io>".to_string(),
-				to,
-				subject: "Crowdsell - Validation Email".to_string(),
-				text: "Hello! Thank you for signing up to join the Crowdsell private beta.\n\nClick this link to validate your email:\nhttps://crowdsell.io/validate-email?t={verification_token}".to_string(),
-			}),
-			Blog => ("https://api.mailgun.net/v3/blainehansen.co/messages".to_string(), "blog".to_string(), MailgunForm {
-				from: "<no-reply@blainehansen.co>".to_string(),
-				to,
-				subject: "blainehansen.co - verification email".to_string(),
-				text: "Hello! Click this link to validate your email:\nhttps://blainehansen.co/validate-email?t={verification_token}".to_string(),
-			}),
-		}
-	}
-}
 
 #[derive(Debug, Validate, Deserialize)]
 struct NewEmailJsonInput {
@@ -248,12 +211,10 @@ struct NewEmailJsonInput {
 
 #[derive(Debug)]
 struct NewEmailMessage {
-	// email: String,
 	// site_name: SiteName,
 	site_name: String,
 	validation_token: String,
 	// unsubscribe_token: String,
-
 	mailgun_url: String,
 	mailgun_form: MailgunForm,
 }
@@ -266,7 +227,6 @@ impl NewEmailJsonInput {
 		let (mailgun_url, string_site_name, mailgun_form) = self.site_name.get_site_information(self.email);
 
 		let msg = NewEmailMessage {
-			// site_name: self.site_name,
 			site_name: string_site_name,
 			validation_token,
 			mailgun_url,
@@ -276,12 +236,6 @@ impl NewEmailJsonInput {
 		Ok(msg)
 	}
 }
-
-// impl NewEmailMessage {
-// 	fn make_insert_args(&self) -> (&str, &SiteName, &str) {
-// 		(&self.email, &self.site_name, &self.validation_token)
-// 	}
-// }
 
 impl Message for NewEmailMessage {
 	type Result = Result<NewEmailMessage, GenericError>;
@@ -319,13 +273,17 @@ fn new_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Error
 					db.send(msg)
 						.from_err()
 						.and_then(|msg_res| {
-							msg_res.into_future().from_err().and_then(|msg| {
-								http_client::post(msg.mailgun_url)
-									.form(msg.mailgun_form)
-									.unwrap()
-									.send()
-									.map_err(|_| GenericError::InternalServer)
-									.and_then(|_| respond_success())
+							msg_res
+								.into_future()
+								.from_err()
+								.and_then(|msg| {
+									http_client::post(msg.mailgun_url)
+										.header(actix_web::http::header::AUTHORIZATION, MAILGUN_AUTH.to_owned())
+										.form(msg.mailgun_form)
+										.unwrap()
+										.send()
+										.map_err(|_| GenericError::InternalServer)
+										.and_then(|_| respond_success())
 							})
 					})
 			})
@@ -343,12 +301,12 @@ fn new_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Error
 // }
 
 fn from_base64<'d, D>(deserializer: D) -> Result<String, D::Error>
-  where D: Deserializer<'d>
+	where D: Deserializer<'d>
 {
-  use serde::de::Error;
-  let de = String::deserialize(deserializer)?;
-  let buf = base64::decode_config(&de, base64::URL_SAFE).map_err(|_| Error::custom(""))?;
-  String::from_utf8(buf).map_err(|_| Error::custom(""))
+	use serde::de::Error;
+	let de = String::deserialize(deserializer)?;
+	let buf = base64::decode_config(&de, base64::URL_SAFE).map_err(|_| Error::custom(""))?;
+	String::from_utf8(buf).map_err(|_| Error::custom(""))
 }
 
 #[derive(Debug, Deserialize)]
@@ -398,16 +356,34 @@ fn verify_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Er
 }
 
 
+struct State {
+	db: Addr<PgConnection>,
+}
+
+
+lazy_static! {
+	static ref MAILGUN_AUTH: HeaderValue = {
+		let e = std::env::var("MAILGUN_AUTH").expect("MAILGUN_AUTH isn't set");
+		let auth = base64_encode(e.as_bytes());
+		HeaderValue::from_bytes(format!("Basic {}", auth).as_bytes()).expect("couldn't construct valid header")
+	};
+}
+
 fn main() {
+	dbg!(MAILGUN_AUTH.to_owned());
+
 	std::env::set_var("RUST_LOG", "micro_chimp=info");
 	pretty_env_logger::init();
 
-	let sys = System::new("micro_chimp");
-	let db_url = "postgres://user:asdf@localhost/database";
+	let user = std::env::var("POSTGRES_USER").expect("POSTGRES_USER isn't set");
+	let pass = std::env::var("POSTGRES_PASS").expect("POSTGRES_PASS isn't set");
+
+	let db_url = format!("postgres://{}:{}@localhost/database", user, pass);
 
 	// start http server
+	let sys = System::new("micro_chimp");
 	server::new(move || {
-		let addr = PgConnection::connect(db_url);
+		let addr = PgConnection::connect(db_url.as_str());
 
 		App::with_state(State { db: addr })
 			.resource("/new-email", |r| r.post().a(new_email))
