@@ -69,7 +69,7 @@ impl Actor for PgConnection {
 	type Context = Context<Self>;
 }
 
-const NEW_EMAIL_QUERY: &'static str = "insert into emails (email, validation_token, site_name) values ($1, $2, $3)";
+const NEW_EMAIL_QUERY: &'static str = "insert into emails (email, site_name, validation_token) values ($1, $2, $3)";
 const VERIFY_QUERY: &'static str = "update emails set validation_token = null where validation_token = $1";
 
 impl PgConnection {
@@ -224,7 +224,7 @@ impl NewEmailJsonInput {
 		self.validate().ok().ok_or(GenericError::BadRequest)?;
 		let validation_token = generate_random_token().ok_or(GenericError::InternalServer)?;
 
-		let (mailgun_url, string_site_name, mailgun_form) = self.site_name.get_site_information(self.email);
+		let (mailgun_url, string_site_name, mailgun_form) = self.site_name.get_site_information(self.email, &validation_token);
 
 		let msg = NewEmailMessage {
 			site_name: string_site_name,
@@ -282,8 +282,10 @@ fn new_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Error
 										.form(msg.mailgun_form)
 										.unwrap()
 										.send()
-										.map_err(|_| GenericError::InternalServer)
-										.and_then(|_| respond_success())
+										.then(|res| match res {
+											Ok(ref r) if r.status().is_success() => respond_success(),
+											_ => Err(GenericError::InternalServer)
+										})
 							})
 					})
 			})
@@ -370,7 +372,7 @@ lazy_static! {
 }
 
 fn main() {
-	dbg!(MAILGUN_AUTH.to_owned());
+	assert!(MAILGUN_AUTH.to_owned() != "");
 
 	std::env::set_var("RUST_LOG", "micro_chimp=info");
 	pretty_env_logger::init();

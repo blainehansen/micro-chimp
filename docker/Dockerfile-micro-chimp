@@ -8,19 +8,22 @@ COPY nodecodegen.js /src/
 COPY ${SITE_NAMES_FILE} /src/
 
 RUN npm install yaml
-RUN npm install pascal-case
+RUN npm install snake-case
 
 WORKDIR /src
 RUN node nodecodegen.js $SITE_NAMES_FILE
 
 
 
-# # FROM rust:1 as rustcompilation
-# FROM rust:1
-# WORKDIR /src/app
-# RUN cargo build --bin micro_chimp --release
+# FROM rust:1 as rustcompilation
+FROM rust:1
+
+COPY --from=codegen /src/sites.rs /src/app
+
+WORKDIR /src/app
+RUN cargo build --bin micro_chimp --release
 
 
-# FROM scratch
-# COPY --from=rustcompilation /src/app/target/release/micro_chimp /app
-# ENTRYPOINT ./app/micro_chimp
+FROM scratch
+COPY --from=rustcompilation /src/app/target/release/micro_chimp /app
+ENTRYPOINT ./app/micro_chimp
