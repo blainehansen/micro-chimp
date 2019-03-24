@@ -5,3 +5,4 @@ curl.scratch.sh
 node_modules
 
 docker/sites.rs
+docker/site_names.yml
