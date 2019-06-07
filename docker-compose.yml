@@ -1,22 +1,30 @@
 version: '3'
 services:
-  # api:
-  #   image: micro_email_collector
-  #   links:
-  #     - database
-  #   ports:
-  #     - "5050:5050"
-  #   # volumes:
-  #   #   - ./.configs/.env.launch.dev.sh:/env/.env
-  #   #   - ./.configs/.keys.go.sh:/keys/.keys
-  #   #   - ./.configs/.keys.go-db.txt:/keys/.db-key
-  #   #   - ./launch:/go/src/main
-  #   # working_dir: /go/src/main
-  #   # command: reflex -g '*.go' -G '*_test.go' --start-service=true -- sh -c "go run -tags=jsoniter *.go"
-  #   tty: true
+  api:
+    build:
+      context: ./
+      dockerfile: micro-chimp.Dockerfile
+      args:
+        SITE_NAMES_FILE: site_names.yml
+    image: blainehansen:micro-chimp
+    links:
+      - database
+    ports:
+      - "5050:5050"
+    # volumes:
+    #   - ./.configs/.env.launch.dev.sh:/env/.env
+    #   - ./.configs/.keys.go.sh:/keys/.keys
+    #   - ./.configs/.keys.go-db.txt:/keys/.db-key
+    #   - ./launch:/go/src/main
+    # working_dir: /go/src/main
+    # command: reflex -g '*.go' -G '*_test.go' --start-service=true -- sh -c "go run -tags=jsoniter *.go"
+    tty: true
 
   database:
-    image: postgres:11-alpine
+    build:
+      context: ./
+      dockerfile: micro-chimp-postgres.Dockerfile
+    image: blainehansen:micro-chimp/postgres
     environment:
       - POSTGRES_DB=database
       - POSTGRES_USER=user

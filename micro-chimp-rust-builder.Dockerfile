@@ -7,4 +7,3 @@ COPY src/main.rs /build/src
 
 WORKDIR /build
 RUN cargo build-deps --release
-
