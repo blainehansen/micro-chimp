@@ -69,7 +69,7 @@ impl Actor for PgConnection {
 	type Context = Context<Self>;
 }
 
-const NEW_EMAIL_QUERY: &'static str = "insert into emails (email, site_name, validation_token) values ($1, $2, $3)";
+const NEW_EMAIL_QUERY: &'static str = "insert into emails (email, site_name, validation_token) values ($1, $2::site_name_enum, $3)";
 const VERIFY_QUERY: &'static str = "update emails set validation_token = null where validation_token = $1";
 
 impl PgConnection {
@@ -390,6 +390,7 @@ fn main() {
 		App::with_state(State { db: addr })
 			.resource("/new-email", |r| r.post().a(new_email))
 			.resource("/verify-email", |r| r.post().a(verify_email))
+			// .resource("/unsubscribe", |r| r.post().a(unsubscribe))
 	})
 		// .backlog(8192)
 		.bind("127.0.0.1:5050")

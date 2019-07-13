@@ -1,3 +1,5 @@
+# https://www.digitalocean.com/community/tutorials/how-to-self-host-reviewninja-on-digitalocean-using-docker-and-coreos
+
 version: '3'
 services:
   api:
@@ -15,9 +17,6 @@ services:
     #   - ./.configs/.env.launch.dev.sh:/env/.env
     #   - ./.configs/.keys.go.sh:/keys/.keys
     #   - ./.configs/.keys.go-db.txt:/keys/.db-key
-    #   - ./launch:/go/src/main
-    # working_dir: /go/src/main
-    # command: reflex -g '*.go' -G '*_test.go' --start-service=true -- sh -c "go run -tags=jsoniter *.go"
     tty: true
 
   database:
