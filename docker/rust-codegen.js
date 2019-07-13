@@ -46,9 +46,9 @@ pub enum SiteName {
 use super::MailgunForm;
 
 impl SiteName {
-	pub fn get_site_information(self, to: String, token: &str) -> (String, String, MailgunForm) {
+	pub fn get_site_information(&self, to: String, token: &str) -> (String, String, MailgunForm) {
 		use SiteName::*;
-		match self {
+		match *self {
 			${site_fields.join('\n')}
 		}
 	}

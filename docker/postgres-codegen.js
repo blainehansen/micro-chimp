@@ -8,10 +8,6 @@ if (sites.length === 0) throw new Error("")
 
 const allowed_names = Object.keys(sites).map(k => `'${snake_case(k)}'`).join(', ')
 
-const file_string = `create table emails (
-	email citext unique check (email ~* '^.+@.+\..+$'),
-	site_name text not null check (site_name in (${allowed_names})),
-	validation_token text unique
-);`
+const file_string = `create type site_name_enum as enum(${allowed_names});`
 
-fs.writeFileSync('init.sql', file_string)
+fs.writeFileSync('schema_site_name_enum.sql', file_string)

@@ -12,6 +12,7 @@ RUN node postgres-codegen.js $SITE_NAMES_FILE
 
 FROM postgres:11-alpine
 
-COPY ./init_0.sql ./init_2.sql /docker-entrypoint-initdb.d/
+COPY --from=node-codegen /build/schema_site_name_enum.sql /docker-entrypoint-initdb.d/schema_0.sql
 
-COPY --from=node-codegen /build/init.sql /docker-entrypoint-initdb.d/init_1.sql
+COPY ./schema.sql /docker-entrypoint-initdb.d/schema_1.sql
+

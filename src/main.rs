@@ -224,7 +224,7 @@ impl NewEmailJsonInput {
 		self.validate().ok().ok_or(GenericError::BadRequest)?;
 		let validation_token = generate_random_token().ok_or(GenericError::InternalServer)?;
 
-		let (mailgun_url, string_site_name, mailgun_form) = self.site_name.get_site_information(self.email, &validation_token);
+		let (mailgun_url, string_site_name, mailgun_form) = self.site_name.get_site_information(&self.email, &validation_token);
 
 		let msg = NewEmailMessage {
 			site_name: string_site_name,
