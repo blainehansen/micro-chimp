@@ -37,6 +37,7 @@ create table unsubscribe_token (
 	description text not null
 );
 
+
 alter table subscription
 add constraint unsubscribed_with_fk
 foreign key (site_name, unsubscribed_with) references unsubscribe_token (site_name, token);
@@ -62,9 +63,6 @@ grant update (unsubscribed_with) on table subscription to rust_server_user;
 create policy rust_unsubscribe_email on subscription for update to rust_server_user
 	using (true)
 	with check (unsubscribed_with is not null);
-
--- 5lhI4yC6t2Vn/T/5oKdrDM8urmKOJoj+UeFuXfvlcZmYoBoKO5FzQl0bKFyZNgaGqVGCoQXi53hDDHc/EMbXvw==
-
 
 -- grant select * on table emails to node_client_user;
 -- grant select * on table unsubscribe_tokens to node_client_user;

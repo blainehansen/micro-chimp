@@ -71,7 +71,7 @@ impl Actor for PgConnection {
 
 const NEW_EMAIL_QUERY: &'static str = "insert into subscription (email, site_name, validation_token) values ($1, $2::site_name_enum, $3)";
 const VERIFY_QUERY: &'static str = "update subscription set validation_token = null where validation_token = $1";
-const UNSUBSCRIBE_QUERY: &'static str = "";
+const UNSUBSCRIBE_QUERY: &'static str = "update subscription set unsubscribed_with = $1 where email = $2 and site_name = $3::site_name_enum";
 
 impl PgConnection {
 	pub fn connect(db_url: &str) -> Addr<PgConnection> {
