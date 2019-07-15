@@ -1,0 +1,14 @@
+version: '3'
+services:
+  database:
+    image: postgres:11-alpine
+    environment:
+      - POSTGRES_DB=database
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=asdf
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker/schema_site_name_enum.sql:/docker-entrypoint-initdb.d/schema_0.sql
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema_1.sql
+    command: postgres -c 'max_wal_size=2GB'

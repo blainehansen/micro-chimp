@@ -6,6 +6,14 @@ const sites = YAML.parse(fs.readFileSync(process.argv[2], 'utf-8'))
 
 if (sites.length === 0) throw new Error("")
 
+const allowed_names = Object.keys(sites).map(k => `'${snake_case(k)}'`).join(', ')
+
+const schema_file_string = `create type site_name_enum as enum(${allowed_names});`
+
+fs.writeFileSync('schema_site_name_enum.sql', schema_file_string)
+
+
+
 const SITE_FIELDS_TEMPLATE = `{enum_name} => (
 				"https://api.mailgun.net/v3/{site_url}/messages".to_string(),
 				"{string_name}".to_string(),
@@ -35,7 +43,7 @@ for (const [site_url, { from_email, subject_text, body_text }] of Object.entries
 	)
 }
 
-const file_string = `use serde::Deserialize;
+const rust_file_string = `use serde::Deserialize;
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Deserialize)]
@@ -55,4 +63,4 @@ impl SiteName {
 }
 `
 
-fs.writeFileSync('sites.rs', file_string)
+fs.writeFileSync('sites.rs', rust_file_string)

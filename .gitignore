@@ -6,4 +6,4 @@ node_modules
 
 docker/sites.rs
 docker/site_names.yml
-docker/init.sql
+docker/schema_site_name_enum.sql

@@ -195,9 +195,9 @@ impl From<actix_web::error::JsonPayloadError> for GenericError {
 // mail_public_key
 #[derive(Debug, Serialize)]
 pub struct MailgunForm {
-	from: String,
+	from: &'static str,
 	to: String,
-	subject: String,
+	subject: &'static str,
 	text: String,
 }
 

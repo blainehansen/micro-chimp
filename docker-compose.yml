@@ -7,7 +7,7 @@ services:
       context: ./
       dockerfile: micro-chimp.Dockerfile
       args:
-        SITE_NAMES_FILE: site_names.yml
+        SITE_NAMES_FILE: docker/site_names.yml
     image: blainehansen:micro-chimp
     links:
       - database
@@ -23,6 +23,8 @@ services:
     build:
       context: ./
       dockerfile: micro-chimp-postgres.Dockerfile
+      args:
+        SITE_NAMES_FILE: docker/site_names.yml
     image: blainehansen:micro-chimp/postgres
     environment:
       - POSTGRES_DB=database
@@ -31,6 +33,5 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       # - ./.configs/.keys.go-db.txt:/keys/.go-db-key
     command: postgres -c 'max_wal_size=2GB'
