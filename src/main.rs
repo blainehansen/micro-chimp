@@ -69,8 +69,9 @@ impl Actor for PgConnection {
 	type Context = Context<Self>;
 }
 
-const NEW_EMAIL_QUERY: &'static str = "insert into emails (email, site_name, validation_token) values ($1, $2::site_name_enum, $3)";
-const VERIFY_QUERY: &'static str = "update emails set validation_token = null where validation_token = $1";
+const NEW_EMAIL_QUERY: &'static str = "insert into subscription (email, site_name, validation_token) values ($1, $2::site_name_enum, $3)";
+const VERIFY_QUERY: &'static str = "update subscription set validation_token = null where validation_token = $1";
+const UNSUBSCRIBE_QUERY: &'static str = "";
 
 impl PgConnection {
 	pub fn connect(db_url: &str) -> Addr<PgConnection> {
