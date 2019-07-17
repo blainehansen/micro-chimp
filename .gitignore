@@ -4,6 +4,6 @@
 curl.scratch.sh
 node_modules
 
-docker/sites.rs
-docker/site_names.yml
-docker/schema_site_name_enum.sql
+sites.rs
+site_names.yml
+schema_site_name_enum.sql

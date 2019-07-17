@@ -15,12 +15,12 @@ fs.writeFileSync('schema_site_name_enum.sql', schema_file_string)
 
 
 const SITE_FIELDS_TEMPLATE = `{enum_name} => (
-				"https://api.mailgun.net/v3/{site_url}/messages".to_string(),
-				"{string_name}".to_string(),
+				"https://api.mailgun.net/v3/{site_url}/messages",
+				"{string_name}",
 				MailgunForm {
 					to,
-					from: "<{from_email}>".to_string(),
-					subject: "{subject_text}".to_string(),
+					from: "<{from_email}>",
+					subject: "{subject_text}",
 					text: {body_text}.replace("{verification_token}", token),
 				},
 			),`
@@ -48,15 +48,15 @@ const rust_file_string = `use serde::Deserialize;
 #[allow(non_camel_case_types)]
 #[derive(Debug, Deserialize)]
 pub enum SiteName {
-	${site_names.join(',\n')}
+	${site_names.map(name => `${name},`).join('\n')}
 }
 
 use super::MailgunForm;
 
 impl SiteName {
-	pub fn get_site_information(&self, to: String, token: &str) -> (String, String, MailgunForm) {
+	pub fn get_site_information(self, to: String, token: &str) -> (&'static str, &'static str, MailgunForm) {
 		use SiteName::*;
-		match *self {
+		match self {
 			${site_fields.join('\n')}
 		}
 	}

@@ -14,7 +14,6 @@ create table subscription (
 
 	primary key (email, site_name),
 
-	-- validation_token text unique check (character_length(validation_token) = 86),
 	validation_token text unique check (character_length(validation_token) = 88),
 	unsubscribed_with text
 );
@@ -31,7 +30,6 @@ $$ language sql immutable;
 
 create table unsubscribe_token (
 	site_name site_name_enum not null,
-	-- token text not null check (character_length(token) = 86),
 	token text not null check (character_length(token) = 88),
 	primary key (site_name, token),
 	description text not null

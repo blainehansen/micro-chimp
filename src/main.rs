@@ -11,7 +11,6 @@ use actix_web::{
 	client as http_client, http::{StatusCode, header::HeaderValue}, server, App, AsyncResponder,
 	HttpMessage, HttpRequest, HttpResponse, error::ResponseError,
 };
-// use futures::{future, Future, IntoFuture};
 use futures::{Future, IntoFuture};
 
 extern crate serde;
@@ -20,16 +19,12 @@ use serde::{Serialize, Deserialize, Deserializer};
 
 extern crate tokio_postgres;
 use tokio_postgres::{Client, Statement};
-// use tokio_postgres::{Connection, stmt::Statement};
 
 #[macro_use] extern crate validator_derive;
 extern crate validator;
 use validator::Validate;
 
 #[macro_use] extern crate lazy_static;
-
-// #[macro_use] extern crate postgres;
-// #[macro_use] extern crate postgres_derive;
 
 extern crate base64;
 
@@ -53,16 +48,12 @@ pub fn generate_random_token() -> Option<String> {
 	Some(base64_encode(&buf[..]))
 }
 
-// struct PgConnection {
-// 	client: Client,
-// 	insert_new_email: Statement,
-// 	verify_existing: Statement,
-// }
 
 struct PgConnection {
 	client: Option<Client>,
-	insert_new_email: Option<Statement>,
-	verify_existing: Option<Statement>,
+	new_email_query: Option<Statement>,
+	verify_query: Option<Statement>,
+	unsubscribe_query: Option<Statement>,
 }
 
 impl Actor for PgConnection {
@@ -78,50 +69,45 @@ impl PgConnection {
 		let connection_attempt = tokio_postgres::connect(db_url, tokio_postgres::tls::NoTls);
 
 		PgConnection::create(move |ctx| {
-			// connection_attempt
-			// 	.map_err(|_| panic!("{:?}", "can't connect to postgresql"))
-			// 	.and_then(|mut client, conn| {
-			// 		Arbiter::spawn(conn.map_err(|e| panic!("{}", e)));
-
-			// 		future::join(
-			// 			client.prepare(sites::NEW_EMAIL_QUERY)
-			// 				.map_err(|_| panic!("{:?}", "couldn't prepare NEW_EMAIL_QUERY")),
-			// 			client.prepare(sites::VERIFY_QUERY)
-			// 				.map_err(|_| panic!("{:?}", "couldn't prepare VERIFY_QUERY")),
-			// 		)
-			// 			.map_err(|_| panic!("{:?}", "join future failed"))
-			// 			.and_then(move |(insert_new_email, verify_existing)| {
-			// 				fut::ok(PgConnection { client, insert_new_email, verify_existing })
-			// 			})
-			// 	})
-
-			let act = PgConnection { client: None, insert_new_email: None, verify_existing: None };
+			let act = PgConnection { client: None, new_email_query: None, verify_query: None, unsubscribe_query: None };
 
 			connection_attempt.map_err(|_| panic!("can not connect to postgresql"))
 				.into_actor(&act)
 				.and_then(|(mut client, connection), act, ctx| {
+					Arbiter::spawn(connection.map_err(|e| panic!("{}", e)));
+
+					use tokio_postgres::types::{Type as Pg};
 					ctx.wait(
-						client.prepare(NEW_EMAIL_QUERY)
+						client.prepare_typed(NEW_EMAIL_QUERY, &[Pg::TEXT, Pg::TEXT, Pg::TEXT])
 							.map_err(|_| panic!("couldn't prepare NEW_EMAIL_QUERY"))
 							.into_actor(act)
 							.and_then(|statement, act, _| {
-								act.insert_new_email = Some(statement);
+								act.new_email_query = Some(statement);
 								fut::ok(())
 							})
 					);
 
 					ctx.wait(
-						client.prepare(VERIFY_QUERY)
+						client.prepare_typed(VERIFY_QUERY, &[Pg::TEXT])
 							.map_err(|_| panic!("couldn't prepare VERIFY_QUERY"))
 							.into_actor(act)
 							.and_then(|statement, act, _| {
-								act.verify_existing = Some(statement);
+								act.verify_query = Some(statement);
+								fut::ok(())
+							})
+					);
+
+					ctx.wait(
+						client.prepare_typed(UNSUBSCRIBE_QUERY, &[Pg::TEXT, Pg::TEXT, Pg::TEXT])
+							.map_err(|_| panic!("couldn't prepare UNSUBSCRIBE_QUERY"))
+							.into_actor(act)
+							.and_then(|statement, act, _| {
+								act.unsubscribe_query = Some(statement);
 								fut::ok(())
 							})
 					);
 
 					act.client = Some(client);
-					Arbiter::spawn(connection.map_err(|e| panic!("{}", e)));
 					fut::ok(())
 				})
 				.wait(ctx);
@@ -192,14 +178,12 @@ impl From<actix_web::error::JsonPayloadError> for GenericError {
 }
 
 
-// mail_private_api_key
-// mail_public_key
 #[derive(Debug, Serialize)]
 pub struct MailgunForm {
-	from: &'static str,
 	to: String,
-	subject: &'static str,
 	text: String,
+	from: &'static str,
+	subject: &'static str,
 }
 
 
@@ -212,11 +196,9 @@ struct NewEmailJsonInput {
 
 #[derive(Debug)]
 struct NewEmailMessage {
-	// site_name: SiteName,
-	site_name: String,
+	site_name: &'static str,
 	validation_token: String,
-	// unsubscribe_token: String,
-	mailgun_url: String,
+	mailgun_url: &'static str,
 	mailgun_form: MailgunForm,
 }
 
@@ -225,7 +207,7 @@ impl NewEmailJsonInput {
 		self.validate().ok().ok_or(GenericError::BadRequest)?;
 		let validation_token = generate_random_token().ok_or(GenericError::InternalServer)?;
 
-		let (mailgun_url, string_site_name, mailgun_form) = self.site_name.get_site_information(&self.email, &validation_token);
+		let (mailgun_url, string_site_name, mailgun_form) = self.site_name.get_site_information(self.email, &validation_token);
 
 		let msg = NewEmailMessage {
 			site_name: string_site_name,
@@ -249,8 +231,8 @@ impl Handler<NewEmailMessage> for PgConnection {
 		Box::new(
 			self.client
 				.as_mut().unwrap()
-				// .execute(self.insert_new_email.as_ref().unwrap(), msg.make_insert_args().as_ref())
-				.execute(self.insert_new_email.as_ref().unwrap(), &[&msg.mailgun_form.to, &msg.site_name, &msg.validation_token])
+				// .execute(self.new_email_query.as_ref().unwrap(), msg.make_insert_args().as_ref())
+				.execute(self.new_email_query.as_ref().unwrap(), &[&msg.mailgun_form.to, &msg.site_name, &msg.validation_token])
 				.into_future()
 				.from_err()
 				.and_then(move |rows| match rows {
@@ -283,7 +265,7 @@ fn new_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Error
 										.form(msg.mailgun_form)
 										.unwrap()
 										.send()
-										.then(|res| match res {
+										.then(|res| match dbg!(res) {
 											Ok(ref r) if r.status().is_success() => respond_success(),
 											_ => Err(GenericError::InternalServer)
 										})
@@ -294,14 +276,6 @@ fn new_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Error
 	.responder()
 }
 
-
-// fn as_base64<T, S>(key: &T, serializer: &mut S) -> Result<(), S::Error>
-// 	where
-// 		T: AsRef<[u8]>,
-// 		S: Serializer
-// {
-// 	serializer.serialize_str(&base64::encode(key.as_ref()))
-// }
 
 fn from_base64<'d, D>(deserializer: D) -> Result<String, D::Error>
 	where D: Deserializer<'d>
@@ -314,7 +288,6 @@ fn from_base64<'d, D>(deserializer: D) -> Result<String, D::Error>
 
 #[derive(Debug, Deserialize)]
 struct VerifyEmailMessage {
-	#[serde(deserialize_with = "from_base64")]
 	validation_token: String,
 }
 
@@ -329,10 +302,10 @@ impl Handler<VerifyEmailMessage> for PgConnection {
 		Box::new(
 			self.client
 				.as_mut().unwrap()
-				.execute(self.verify_existing.as_ref().unwrap(), &[&msg.validation_token])
+				.execute(self.verify_query.as_ref().unwrap(), &[&msg.validation_token])
 				.into_future()
 				.from_err()
-				.and_then(move |rows| match rows {
+				.and_then(|rows| match rows {
 					1 => Ok(()),
 					0 => Err(GenericError::NoContent),
 					_ => Err(GenericError::InternalServer),
@@ -346,6 +319,58 @@ fn verify_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Er
 	req.json()
 		.from_err()
 		.and_then(move |msg: VerifyEmailMessage| {
+			db.send(msg)
+				.from_err()
+				.and_then(|msg_res| {
+					msg_res
+						.into_future()
+						.from_err()
+						.and_then(|_| respond_success())
+				})
+		})
+		.responder()
+}
+
+
+
+#[derive(Debug, Deserialize)]
+struct UnsubscribeMessage {
+	#[serde(deserialize_with = "from_base64")]
+	email: String,
+	site_name: SiteName,
+	unsubscribed_with: String,
+}
+
+impl Message for UnsubscribeMessage {
+	type Result = Result<(), GenericError>;
+}
+
+impl Handler<UnsubscribeMessage> for PgConnection {
+	type Result = ResponseFuture<(), GenericError>;
+
+	fn handle(&mut self, msg: UnsubscribeMessage, _: &mut Self::Context) -> Self::Result {
+		let (_, site_name, _) = msg.site_name.get_site_information("".to_string(), "");
+		Box::new(
+			self.client
+				.as_mut().unwrap()
+				.execute(self.unsubscribe_query.as_ref().unwrap(), &[&msg.unsubscribed_with, &msg.email, &site_name])
+				.into_future()
+				.from_err()
+				.and_then(|rows| match rows {
+					1 => Ok(()),
+					0 => Err(GenericError::NoContent),
+					_ => Err(GenericError::InternalServer),
+				})
+		)
+	}
+}
+
+
+fn unsubscribe(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Error = GenericError> {
+	let db = req.state().db.clone();
+	req.json()
+		.from_err()
+		.and_then(move |msg: UnsubscribeMessage| {
 			db.send(msg)
 				.from_err()
 				.and_then(|msg_res| {
@@ -391,7 +416,7 @@ fn main() {
 		App::with_state(State { db: addr })
 			.resource("/new-email", |r| r.post().a(new_email))
 			.resource("/verify-email", |r| r.post().a(verify_email))
-			// .resource("/unsubscribe", |r| r.post().a(unsubscribe))
+			.resource("/unsubscribe", |r| r.post().a(unsubscribe))
 	})
 		// .backlog(8192)
 		.bind("127.0.0.1:5050")
