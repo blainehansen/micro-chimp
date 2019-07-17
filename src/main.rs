@@ -398,6 +398,8 @@ lazy_static! {
 }
 
 fn main() {
+	std::thread::sleep(std::time::Duration::from_secs(8));
+
 	assert!(MAILGUN_AUTH.to_owned() != "");
 
 	std::env::set_var("RUST_LOG", "micro_chimp=info");
@@ -406,7 +408,7 @@ fn main() {
 	let user = std::env::var("POSTGRES_USER").expect("POSTGRES_USER isn't set");
 	let pass = std::env::var("POSTGRES_PASS").expect("POSTGRES_PASS isn't set");
 
-	let db_url = format!("postgres://{}:{}@localhost/database", user, pass);
+	let db_url = format!("postgres://{}:{}@database/database", user, pass);
 
 	// start http server
 	let sys = System::new("micro_chimp");

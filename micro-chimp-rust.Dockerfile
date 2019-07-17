@@ -1,9 +1,10 @@
-FROM rust:1
+FROM ekidd/rust-musl-builder:latest
 
 RUN cargo install cargo-build-deps
 
-COPY Cargo.toml Cargo.lock /build/
-COPY src/main.rs /build/src/
+COPY Cargo.toml Cargo.lock ./
+COPY src/main.rs ./src/
 
-WORKDIR /build
+RUN sudo chown -R rust:rust /home/rust
+
 RUN cargo build-deps --release

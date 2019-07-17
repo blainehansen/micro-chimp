@@ -1,29 +1,30 @@
 version: '3'
 services:
   api:
-    build:
-      context: ./
-      dockerfile: micro-chimp.Dockerfile
-      args:
-        SITE_NAMES_FILE: docker/site_names.yml
-    # image: blainehansen:micro-chimp
+    # build:
+    #   context: ./
+    #   dockerfile: micro-chimp.Dockerfile
+    #   args:
+    #     SITE_NAMES_FILE: docker/site_names.yml
+    image: blainehansen/micro-chimp
     links:
       - database
     ports:
       - "5050:5050"
-    # volumes:
-    #   - ./.configs/.env.launch.dev.sh:/env/.env
-    #   - ./.configs/.keys.go.sh:/keys/.keys
-    #   - ./.configs/.keys.go-db.txt:/keys/.db-key
+    environment:
+      - MAILGUN_AUTH=fake
+      - POSTGRES_USER=rust_server_user
+      - POSTGRES_PASS=password
     tty: true
+    command: /server/micro-chimp
 
   database:
-    build:
-      context: ./
-      dockerfile: micro-chimp-postgres.Dockerfile
-      args:
-        SITE_NAMES_FILE: docker/site_names.yml
-    # image: blainehansen:micro-chimp/postgres
+    # build:
+    #   context: ./
+    #   dockerfile: micro-chimp-postgres.Dockerfile
+    #   args:
+    #     SITE_NAMES_FILE: docker/site_names.yml
+    image: blainehansen/micro-chimp:postgres
     environment:
       - POSTGRES_DB=database
       - POSTGRES_USER=user
