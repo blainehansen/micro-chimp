@@ -1,0 +1,14 @@
+{
+	"compilerOptions": {
+		"lib": ["ESNext"],
+		"target": "ESNext",
+		"module": "commonjs",
+		"declaration": true,
+		"moduleResolution": "node",
+		"strict": true,
+		"outDir": "dist",
+		"esModuleInterop": true
+	},
+	"include": ["bin/**/*", "client/**/*"]
+}
+

@@ -1,11 +1,7 @@
 version: '3.1'
 services:
   database:
-    build:
-      context: ./
-      dockerfile: postgres.Dockerfile
-      args:
-        SITE_NAMES_FILE: site_names.yml
+    image: blainehansen/micro-chimp:postgres
     ports:
       - "5432:5432"
     tty: true
@@ -13,8 +9,8 @@ services:
       - POSTGRES_DB=database
       - POSTGRES_USER_FILE=/run/secrets/admin_postgres_user_file
       - POSTGRES_PASSWORD_FILE=/run/secrets/admin_postgres_password_file
-    volumes:
-      - /postgres-data:/var/lib/postgresql/data
+    # volumes:
+    #   - ./postgres-data:/var/lib/postgresql/data
     command: postgres -c 'max_wal_size=2GB'
     secrets:
       - admin_postgres_user_file
@@ -22,11 +18,7 @@ services:
       - server_postgres_password_file
 
   api:
-    build:
-      context: ./
-      dockerfile: micro-chimp.Dockerfile
-      args:
-        SITE_NAMES_FILE: site_names.yml
+    image: blainehansen/micro-chimp
     depends_on:
       - database
     ports:
@@ -50,3 +42,6 @@ secrets:
   # use `openssl rand -base64 64 | tr -d "[:space:]" > .secret.server_postgres_password_file` to generate a new password
   server_postgres_password_file:
     file: .secret.server_postgres_password_file
+
+# https://www.digitalocean.com/community/tutorials/how-to-self-host-reviewninja-on-digitalocean-using-docker-and-coreos
+# https://docs.docker.com/engine/swarm/secrets/

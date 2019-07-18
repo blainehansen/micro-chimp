@@ -1,12 +1,10 @@
 create extension citext;
 
--- \set rust_server_password `sed 's/^[ \t]*//;s/[ \t]*$//' < /keys/.rust-db-key`
--- create role rust_server_user login password :'rust_server_password';
-create role rust_server_user login password 'password';
+\set rust_server_password `tr -d "[:space:]" < /run/secrets/server_postgres_password_file`
+create role rust_server_user login password :'rust_server_password';
 
--- \set node_client_password `sed 's/^[ \t]*//;s/[ \t]*$//' < /keys/.node-db-key`
+-- \set node_client_password `tr -d "[:space:]" < /run/secrets/client_postgres_password_file`
 -- create role node_client_user login password :'node_client_password';
-create role node_client_user login password 'password';
 
 create table subscription (
 	email citext not null check (email ~* '^.+@.+\..+$'),

@@ -9,6 +9,6 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./docker/schema_site_name_enum.sql:/docker-entrypoint-initdb.d/schema_0.sql
-      - ./schema.sql:/docker-entrypoint-initdb.d/schema_1.sql
+      - ./docker/site_name_enum.sql:/docker-entrypoint-initdb.d/schema_0.sql
+      - ./docker.schema.sql:/docker-entrypoint-initdb.d/schema_1.sql
     command: postgres -c 'max_wal_size=2GB'

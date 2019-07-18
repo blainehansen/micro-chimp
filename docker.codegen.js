@@ -10,7 +10,7 @@ const allowed_names = Object.keys(sites).map(k => `'${snake_case(k)}'`).join(', 
 
 const schema_file_string = `create type site_name_enum as enum(${allowed_names});`
 
-fs.writeFileSync('schema_site_name_enum.sql', schema_file_string)
+fs.writeFileSync('site_name_enum.sql', schema_file_string)
 
 
 

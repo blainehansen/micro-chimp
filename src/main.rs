@@ -389,24 +389,36 @@ struct State {
 }
 
 
+fn env_to_file_to_string(env_var: &'static str) -> String {
+	use std::fs::File;
+	use std::io::Read;
+
+	let file_name = std::env::var(env_var).expect(format!("{} isn't set", env_var).as_str());
+	let mut file = File::open(&file_name).expect(format!("there was a problem finding {}", file_name).as_str());
+	let mut contents = String::new();
+	file.read_to_string(&mut contents).expect(format!("couldn't read contents of {}", file_name).as_str());
+	contents.trim().to_string()
+}
+
+
 lazy_static! {
 	static ref MAILGUN_AUTH: HeaderValue = {
-		let e = std::env::var("MAILGUN_AUTH").expect("MAILGUN_AUTH isn't set");
-		let auth = base64_encode(e.as_bytes());
+		let contents = env_to_file_to_string("MAILGUN_AUTH_FILE");
+		let auth = base64_encode(contents.trim().as_bytes());
 		HeaderValue::from_bytes(format!("Basic {}", auth).as_bytes()).expect("couldn't construct valid header")
 	};
 }
 
 fn main() {
-	std::thread::sleep(std::time::Duration::from_secs(8));
+	std::thread::sleep(std::time::Duration::from_secs(5));
 
 	assert!(MAILGUN_AUTH.to_owned() != "");
 
 	std::env::set_var("RUST_LOG", "micro_chimp=info");
 	pretty_env_logger::init();
 
-	let user = std::env::var("POSTGRES_USER").expect("POSTGRES_USER isn't set");
-	let pass = std::env::var("POSTGRES_PASS").expect("POSTGRES_PASS isn't set");
+	let user = "rust_server_user";
+	let pass = env_to_file_to_string("POSTGRES_PASSWORD_FILE");
 
 	let db_url = format!("postgres://{}:{}@database/database", user, pass);
 

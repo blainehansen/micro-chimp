@@ -6,4 +6,7 @@ node_modules
 
 sites.rs
 site_names.yml
-schema_site_name_enum.sql
+site_name_enum.sql
+/dist
+/dev-micro-chimp
+.secret.*

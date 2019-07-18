@@ -1,0 +1,45 @@
+{
+	"name": "micro-chimp",
+	"version": "0.1.0",
+	"description": "A tiny and simple email signup server.",
+	"main": "dist/micro-chimp.js",
+	"dependencies": {
+		"@types/node": "^12.6.8",
+		"pg": "^7.11.0"
+	},
+	"devDependencies": {
+		"raw-loader": "^3.0.0",
+		"snake-case": "^2.1.0",
+		"ts-loader": "^6.0.4",
+		"ts-node": "^8.3.0",
+		"typescript": "^3.5.3",
+		"webpack": "^4.36.1",
+		"webpack-cli": "^3.3.6",
+		"yaml": "^1.6.0"
+	},
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/blainehansen/micro-chimp.git"
+	},
+	"keywords": [
+		"email",
+		"signup",
+		"server",
+		"rust",
+		"fast",
+		"tiny",
+		"simple",
+		"onboarding",
+		"email-validation",
+		"validation"
+	],
+	"author": "Blaine Hansen <faichenshing@gmail.com>",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/blainehansen/micro-chimp/issues"
+	},
+	"homepage": "https://github.com/blainehansen/micro-chimp#readme"
+}
