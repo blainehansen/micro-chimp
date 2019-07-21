@@ -3,6 +3,10 @@
 	"version": "0.1.0",
 	"description": "A tiny and simple email signup server.",
 	"main": "dist/micro-chimp.js",
+	"bin": {
+		"setup": "dist/micro-chimp.js",
+		"client": "dist/micro-chimp-cli.js"
+	},
 	"dependencies": {
 		"@types/node": "^12.6.8",
 		"pg": "^7.11.0"

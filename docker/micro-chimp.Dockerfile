@@ -6,7 +6,7 @@ COPY ${SITE_NAMES_FILE} /generated/
 
 WORKDIR /generated
 
-RUN node docker.codegen.js $(basename $SITE_NAMES_FILE)
+RUN node docker/codegen.js $(basename $SITE_NAMES_FILE)
 
 
 
