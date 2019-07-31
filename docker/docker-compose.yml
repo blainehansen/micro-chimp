@@ -44,9 +44,7 @@ secrets:
     file: .secret.mailgun_auth_file
   admin_postgres_user_file:
     file: .secret.admin_postgres_user_file
-  # use `openssl rand -base64 64 | tr -d "[:space:]" > .secret.admin_postgres_password_file` to generate a new password
   admin_postgres_password_file:
     file: .secret.admin_postgres_password_file
-  # use `openssl rand -base64 64 | tr -d "[:space:]" > .secret.server_postgres_password_file` to generate a new password
   server_postgres_password_file:
     file: .secret.server_postgres_password_file
