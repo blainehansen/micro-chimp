@@ -8,10 +8,14 @@
 		"client": "dist/micro-chimp-cli.js"
 	},
 	"dependencies": {
-		"@types/node": "^12.6.8",
-		"pg": "^7.11.0"
+		"axios": "^0.19.0",
+		"minimist": "^1.2.0",
+		"pg": "^7.11.0",
+		"pg-cursor": "^2.0.0",
+		"qs": "^6.7.0"
 	},
 	"devDependencies": {
+		"@types/node": "^12.6.8",
 		"raw-loader": "^3.0.0",
 		"snake-case": "^2.1.0",
 		"ts-loader": "^6.0.4",
@@ -22,7 +26,11 @@
 		"yaml": "^1.6.0"
 	},
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"test": "node ./docker/codegen.js site_names_test.yml && rm site_name_enum.sql && mv sites.rs src && cargo check",
+		"build": "rm -Rf dist && webpack -p",
+		"preversion": "npm test",
+		"version": "npm run build",
+		"postversion": "git push origin master && git push origin master --tags && npm publish"
 	},
 	"repository": {
 		"type": "git",

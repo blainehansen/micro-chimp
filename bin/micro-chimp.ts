@@ -14,3 +14,13 @@ fs.writeFileSync(path.join(target_directory, 'micro-chimp.Dockerfile'), base_doc
 fs.writeFileSync(path.join(target_directory, 'postgres.Dockerfile'), postgres_docker_file)
 fs.writeFileSync(path.join(target_directory, 'docker-compose.yml'), docker_compose_file)
 fs.writeFileSync(path.join(target_directory, 'site_names.yml'), site_names_yml)
+
+// fs.writeFileSync(path.join(target_directory, 'create_secrets.sh'), site_names_yml)
+// fs.writeFileSync(path.join(target_directory, 'create_machine.sh'), site_names_yml)
+// fs.writeFileSync(path.join(target_directory, 'deploy.sh'), site_names_yml)
+
+// fs.writeFileSync(path.join(target_directory, 'clone_machine_config.sh'), site_names_yml)
+// fs.writeFileSync(path.join(target_directory, 'unpack_and_connect_machine_config.sh'), site_names_yml)
+// fs.writeFileSync(path.join(target_directory, 'destroy_machine.sh'), site_names_yml)
+
+// we probably want to include scripts to setup secrets and use git secret with them

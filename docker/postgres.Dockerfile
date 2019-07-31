@@ -6,7 +6,7 @@ COPY ${SITE_NAMES_FILE} /generated
 
 WORKDIR /generated
 
-RUN node docker/codegen.js $(basename $SITE_NAMES_FILE)
+RUN node codegen.js $(basename $SITE_NAMES_FILE)
 
 
 FROM postgres:11-alpine

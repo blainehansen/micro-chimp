@@ -4,7 +4,7 @@ const snake_case = require('snake-case')
 
 const sites = YAML.parse(fs.readFileSync(process.argv[2], 'utf-8'))
 
-if (sites.length === 0) throw new Error("")
+if (sites.length === 0) throw new Error("You haven't included any sites in your yml file!")
 
 const allowed_names = Object.keys(sites).map(k => `'${snake_case(k)}'`).join(', ')
 

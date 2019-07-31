@@ -6,7 +6,8 @@ node_modules
 
 sites.rs
 site_names.yml
+!docker/site_names.yml
 site_name_enum.sql
-/dist
+dist
 /dev-micro-chimp
 .secret.*

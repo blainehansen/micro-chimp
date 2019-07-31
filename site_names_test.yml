@@ -1,0 +1,8 @@
+example.com:
+  from_email: no-reply@example.com
+  subject_text: "Example - Validation Email"
+  body_text: |
+    Hello! Thank you for signing up to join example.com.
+
+    Click this link to validate your email:
+    https://example.com/validate-email?t={verification_token}
