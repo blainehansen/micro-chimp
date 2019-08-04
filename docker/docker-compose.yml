@@ -9,6 +9,7 @@ services:
     ports:
       - "5432:5432"
     tty: true
+    restart: unless-stopped
     environment:
       - POSTGRES_DB=database
       - POSTGRES_USER_FILE=/run/secrets/admin_postgres_user_file
@@ -32,12 +33,38 @@ services:
     ports:
       - "5050:5050"
     tty: true
+    restart: unless-stopped
     environment:
       - MAILGUN_AUTH_FILE=/run/secrets/mailgun_auth_file
       - POSTGRES_PASSWORD_FILE=/run/secrets/server_postgres_password_file
     secrets:
       - mailgun_auth_file
       - server_postgres_password_file
+
+  nginx:
+    build:
+      context: ./
+      dockerfile: nginx.Dockerfile
+      arg:
+        SITE_NAMES_FILE: site_names.yml
+    # image: nginx:stable-alpine
+    restart: unless-stopped
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    ports:
+      - "80:80"
+      - "443:443"
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+
+  certbot:
+    image: certbot/certbot
+    restart: unless-stopped
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
 
 secrets:
   mailgun_auth_file:

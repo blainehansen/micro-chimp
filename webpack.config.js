@@ -3,8 +3,8 @@ const path = require('path')
 const config = {
 	target: 'node',
 	entry: {
-		'micro-chimp': './bin/micro-chimp.ts',
-		'micro-chimp-cli': './client/main.ts',
+		'setup': './bin/setup.ts',
+		'client': './bin/client.ts',
 	},
 	output: {
 		path: path.join(__dirname, 'dist'),

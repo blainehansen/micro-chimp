@@ -11,3 +11,5 @@ site_name_enum.sql
 dist
 /dev-micro-chimp
 .secret.*
+
+docker-data

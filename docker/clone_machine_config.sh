@@ -5,5 +5,5 @@ cp -R ~/.docker/machine/machines/micro-chimp . \
 sed -i.bak 's/machine\/certs/machine\/machines\/micro-chimp\/certs/' ./micro-chimp/config.json
 sed -i.bak "s/$(whoami)/{{replace_username}}/" ./micro-chimp/config.json
 
-# tar -zcf micro-chimp.tar.gz ./micro-chimp
-# rm -Rf ./micro-chimp
+tar -zcf .secret.micro-chimp.tar.gz ./micro-chimp
+rm -Rf ./micro-chimp
