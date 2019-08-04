@@ -1,6 +1,5 @@
 node_modules/
 commands/
-client/
 target/
 bin/
 .git

@@ -28,10 +28,16 @@ openssl rand -base64 64 | tr -d "[:space:]" > .secret.server_postgres_password_f
 cat << EOF >> .gitignore
 
 .secret.*
+!.secret.*.secret
+site_names.yml
+sites.rs
+site_name_enum.sql
+nginx.conf
 
 EOF
 
 git secret add  \
+	site_names.yml \
 	.secret.mailgun_auth_file \
 	.secret.digital_ocean_key \
 	.secret.admin_postgres_user_file \

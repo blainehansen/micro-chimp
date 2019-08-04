@@ -3,8 +3,9 @@ const path = require('path')
 const config = {
 	target: 'node',
 	entry: {
-		'setup': './bin/setup.ts',
-		'client': './bin/client.ts',
+		client: './bin/client.ts',
+		codegen: './bin/codegen.ts',
+		setup: './bin/setup.ts',
 	},
 	output: {
 		path: path.join(__dirname, 'dist'),

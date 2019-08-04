@@ -1,4 +1,4 @@
-docker build -t blainehansen/micro-chimp:codegen -f docker/codegen.Dockerfile .
+docker build -t blainehansen/micro-chimp:nginx -f docker/nginx.Dockerfile .
 
 docker build -t blainehansen/micro-chimp:postgres -f docker/postgres.Dockerfile .
 

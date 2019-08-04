@@ -4,12 +4,9 @@
 curl.scratch.sh
 node_modules
 
+!docker/site_names.yml
 sites.rs
 site_names.yml
-!docker/site_names.yml
 site_name_enum.sql
 dist
-/dev-micro-chimp
 .secret.*
-
-docker-data

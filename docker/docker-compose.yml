@@ -4,8 +4,6 @@ services:
     build:
       context: ./
       dockerfile: postgres.Dockerfile
-      args:
-        SITE_NAMES_FILE: site_names.yml
     ports:
       - "5432:5432"
     tty: true
@@ -26,8 +24,6 @@ services:
     build:
       context: ./
       dockerfile: micro-chimp.Dockerfile
-      args:
-        SITE_NAMES_FILE: site_names.yml
     depends_on:
       - database
     ports:
@@ -45,9 +41,8 @@ services:
     build:
       context: ./
       dockerfile: nginx.Dockerfile
-      arg:
-        SITE_NAMES_FILE: site_names.yml
-    # image: nginx:stable-alpine
+    depends_on:
+      - api
     restart: unless-stopped
     volumes:
       - ./data/certbot/conf:/etc/letsencrypt
