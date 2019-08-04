@@ -19,7 +19,7 @@ const config = {
 	module: {
 		rules: [
 			{ test: /\.ts$/, loader: 'ts-loader', exclude: [/node_modules/, /test/] },
-			{ test: /(\.yml|\.Dockerfile|\.sh)$/, loader: 'raw-loader' },
+			{ test: /(\.sql|\.yml|\.Dockerfile|\.sh)$/, loader: 'raw-loader' },
 		]
 	},
 
