@@ -1,6 +1,7 @@
-const path = require('path')
+import path from 'path'
+import webpack from 'webpack'
 
-const config = {
+export default {
 	target: 'node',
 	entry: {
 		client: './bin/client.ts',
@@ -24,6 +25,4 @@ const config = {
 	},
 
 	mode: 'none',
-}
-
-module.exports = config
+} as webpack.Configuration

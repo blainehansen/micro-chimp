@@ -7,8 +7,9 @@
 		"moduleResolution": "node",
 		"strict": true,
 		"outDir": "dist",
-		"esModuleInterop": true
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
 	},
-	"include": ["bin/**/*", "client/**/*"]
+	"include": ["bin/**/*"]
 }
 

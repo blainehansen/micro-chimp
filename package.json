@@ -10,7 +10,7 @@
 		"client": "dist/client.js"
 	},
 	"scripts": {
-		"test": "node ./docker/codegen.js site_names_test.yml && rm site_name_enum.sql && mv sites.rs src && cargo check",
+		"test": "npm run build && node ./dist/codegen.js site_names_test.yml dudes@dudes.com && rm site_name_enum.sql && mv sites.rs src && cargo check && rm nginx.conf && rm deploy.*.sh",
 		"build": "rm -Rf dist && webpack -p",
 		"preversion": "npm test",
 		"version": "npm run build",
@@ -48,6 +48,7 @@
 	"devDependencies": {
 		"@types/node": "^12.6.8",
 		"@types/snake-case": "^1.1.2",
+		"@types/webpack": "^4.32.1",
 		"@types/yaml": "^1.0.2",
 		"raw-loader": "^3.0.0",
 		"snake-case": "^2.1.0",
