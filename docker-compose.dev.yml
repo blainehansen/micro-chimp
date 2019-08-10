@@ -44,3 +44,4 @@ secrets:
 # https://www.digitalocean.com/community/tutorials/how-to-self-host-reviewninja-on-digitalocean-using-docker-and-coreos
 # https://docs.docker.com/engine/swarm/secrets/
 # https://hackernoon.com/finally-you-can-share-docker-machines-without-a-script-8f946d050f7
+# https://www.digitalocean.com/community/tutorials/how-to-secure-a-containerized-node-js-application-with-nginx-let-s-encrypt-and-docker-compose
