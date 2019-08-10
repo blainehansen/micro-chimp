@@ -24,7 +24,7 @@ const site_declaration_decoder = JsonDecoder.dictionary(
 const site_names_file = process.argv[2]
 if (!site_names_file) throw new Error("setup requires a site names yml file")
 const email = process.argv[3]
-if (!email) throw new Error("setup requires a registration email for certbot (which won't be shared for them)")
+if (!email) throw new Error("setup requires a registration email for certbot (which won't be shared with them)")
 
 const sites_result = site_declaration_decoder.decode(YAML.parse(fs.readFileSync(site_names_file, 'utf-8')))
 if (sites_result instanceof Err) throw new Error(`your site_names yaml file wasn't formatted correctly: ${sites_result.error}`)
@@ -83,7 +83,7 @@ impl SiteName {
 	pub fn get_site_information(self, to: String, token: &str) -> (&'static str, &'static str, MailgunForm) {
 		use SiteName::*;
 		match self {
-			${site_fields.join('\n')}
+			${site_fields.join('\n\t\t\t')}
 		}
 	}
 }
@@ -93,74 +93,76 @@ fs.writeFileSync('sites.rs', rust_file_string)
 
 
 
-const nginx_server_names = Object.keys(sites).map(site_url => `subscriptions.${site_url}`)
+const domain_names = Object.keys(sites).map(site_url => `subscriptions.${site_url}`)
 
-const nginx_certificates = nginx_server_names.map(site_url => `
+const secure_nginx_certificates = domain_names.map(site_url => `server {
+	include /etc/nginx/includes/secure;
+	server_name ${site_url};
 	ssl_certificate /etc/letsencrypt/live/${site_url}/fullchain.pem;
 	ssl_certificate_key /etc/letsencrypt/live/${site_url}/privkey.pem;
-`.trim())
+}`).join('\n\n')
 
-const nginx_conf = `upstream backend {
-	server api:5050;
+const nginx_conf = `server {
+	include /etc/nginx/includes/normal;
+	server_name ${domain_names};
 }
 
-server {
-	listen 80;
-	listen [::]:80;
-	server_name ${nginx_server_names};
-	server_tokens off;
-
-	location /.well-known/acme-challenge/ {
-		root /var/www/certbot;
-	}
-}
-
-server {
-	listen 443 ssl;
-	server_name ${nginx_server_names};
-	server_tokens off;
-
-	${nginx_certificates}
-
-	include /etc/letsencrypt/options-ssl-nginx.conf;
-	ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-
-	location / {
-		proxy_pass http://backend;
-		proxy_set_header    Host                $http_host;
-		proxy_set_header    X-Real-IP           $remote_addr;
-		proxy_set_header    X-Forwarded-For     $proxy_add_x_forwarded_for;
-
-		# add_header X-Frame-Options "SAMEORIGIN" always;
-		# add_header X-XSS-Protection "1; mode=block" always;
-		# add_header X-Content-Type-Options "nosniff" always;
-		# add_header Referrer-Policy "no-referrer-when-downgrade" always;
-		# add_header Content-Security-Policy "default-src * data: 'unsafe-eval' 'unsafe-inline'" always;
-	}
-}
+${secure_nginx_certificates}
 `
 
 fs.writeFileSync('nginx.conf', nginx_conf)
 
 
-const domain_names = nginx_server_names.map(server => `-d ${server}`).join(' ')
 
 const DEPLOY_TEMPLATE = `eval $(docker-machine env micro-chimp)
-docker-compose build
-docker-compose up -d
+eval $(cat .secret.postgres.env)
+export MAILGUN_AUTH=$(tr -d "[:space:]" < .secret.mailgun_auth)
 
-docker-compose run --rm --entrypoint "\\
+docker-compose build
+
+docker-compose run --rm --entrypoint " \\
+	openssl dhparam -out /etc/letsencrypt/dhparam-2048.pem 2048" certbot
+
+domains=(${domain_names})
+
+for domain in "\${domains[@]}"; do
+	path="/etc/letsencrypt/live/$domain"
+	docker-compose run --rm --entrypoint "mkdir -p $path" certbot
+
+	docker-compose run --rm --entrypoint " \\
+		openssl req -x509 -nodes -newkey rsa:1024 -days 1\\
+			-keyout '$path/privkey.pem' \\
+			-out '$path/fullchain.pem' \\
+			-subj '/CN=localhost'" certbot
+done
+
+docker-compose up --no-deps --force-recreate -d nginx
+
+domain_args=""
+for domain in "\${domains[@]}"; do
+
+	docker-compose run --rm --entrypoint " \\
+		rm -Rf /etc/letsencrypt/live/$domain && \\
+		rm -Rf /etc/letsencrypt/archive/$domain && \\
+		rm -Rf /etc/letsencrypt/renewal/$domain.conf" certbot
+
+  domain_args="$domain_args -d $domain"
+done
+
+docker-compose run --rm --entrypoint " \\
 	certbot certonly --webroot -w /var/www/certbot \\
 		{staging_argument} \\
 		{email_argument} \\
-		${domain_names} \\
+		$domain_args \\
 		--rsa-key-size 4096 \\
 		--agree-tos \\
 		--force-renewal" certbot
+
+docker-compose up --force-recreate -d
 `
 
 fs.writeFileSync(
-	'deploy.staging.sh',
+	'deploy.testing.sh',
 	DEPLOY_TEMPLATE
 		.replace('{staging_argument}', '--staging')
 		.replace('{email_argument}', '--register-unsafely-without-email'),

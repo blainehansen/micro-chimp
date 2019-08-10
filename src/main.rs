@@ -272,8 +272,8 @@ fn new_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Error
 							})
 					})
 			})
-	})
-	.responder()
+		})
+		.responder()
 }
 
 
@@ -389,21 +389,28 @@ struct State {
 }
 
 
-fn env_to_file_to_string(env_var: &'static str) -> String {
-	use std::fs::File;
-	use std::io::Read;
+// fn env_to_file_to_string(env_var: &'static str) -> String {
+// 	use std::fs::File;
+// 	use std::io::Read;
 
-	let file_name = std::env::var(env_var).expect(format!("{} isn't set", env_var).as_str());
-	let mut file = File::open(&file_name).expect(format!("there was a problem finding {}", file_name).as_str());
-	let mut contents = String::new();
-	file.read_to_string(&mut contents).expect(format!("couldn't read contents of {}", file_name).as_str());
-	contents.trim().to_string()
+// 	let file_name = std::env::var(env_var).expect(format!("{} isn't set", env_var).as_str());
+// 	let mut file = File::open(&file_name).expect(format!("there was a problem finding {}", file_name).as_str());
+// 	let mut contents = String::new();
+// 	file.read_to_string(&mut contents).expect(format!("couldn't read contents of {}", file_name).as_str());
+// 	contents.trim().to_string()
+// }
+
+fn get_env(env_var: &'static str) -> String {
+	std::env::var(env_var)
+		.expect(format!("{} isn't set", env_var).as_str())
+		.trim()
+		.to_string()
 }
-
 
 lazy_static! {
 	static ref MAILGUN_AUTH: HeaderValue = {
-		let contents = env_to_file_to_string("MAILGUN_AUTH_FILE");
+		// let contents = env_to_file_to_string("MAILGUN_AUTH_FILE");
+		let contents = get_env("MAILGUN_AUTH");
 		let auth = base64_encode(contents.trim().as_bytes());
 		HeaderValue::from_bytes(format!("Basic {}", auth).as_bytes()).expect("couldn't construct valid header")
 	};
@@ -418,7 +425,8 @@ fn main() {
 	pretty_env_logger::init();
 
 	let user = "rust_server_user";
-	let pass = env_to_file_to_string("POSTGRES_PASSWORD_FILE");
+	// let pass = env_to_file_to_string("POSTGRES_PASSWORD_FILE");
+	let pass = get_env("SERVER_POSTGRES_PASSWORD");
 
 	let db_url = format!("postgres://{}:{}@database/database", user, pass);
 

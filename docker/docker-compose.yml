@@ -1,4 +1,4 @@
-version: '3.1'
+version: '3.7'
 services:
   database:
     build:
@@ -10,15 +10,11 @@ services:
     restart: unless-stopped
     environment:
       - POSTGRES_DB=database
-      - POSTGRES_USER_FILE=/run/secrets/admin_postgres_user_file
-      - POSTGRES_PASSWORD_FILE=/run/secrets/admin_postgres_password_file
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - /postgres-data:/var/lib/postgresql/data
     command: postgres -c 'max_wal_size=2GB'
-    secrets:
-      - admin_postgres_user_file
-      - admin_postgres_password_file
-      - server_postgres_password_file
 
   api:
     build:
@@ -31,11 +27,8 @@ services:
     tty: true
     restart: unless-stopped
     environment:
-      - MAILGUN_AUTH_FILE=/run/secrets/mailgun_auth_file
-      - POSTGRES_PASSWORD_FILE=/run/secrets/server_postgres_password_file
-    secrets:
-      - mailgun_auth_file
-      - server_postgres_password_file
+      - MAILGUN_AUTH=${MAILGUN_AUTH}
+      - SERVER_POSTGRES_PASSWORD=${SERVER_POSTGRES_PASSWORD}
 
   nginx:
     build:
@@ -54,19 +47,10 @@ services:
 
   certbot:
     image: certbot/certbot
+    depends_on:
+      - nginx
     restart: unless-stopped
     volumes:
       - ./data/certbot/conf:/etc/letsencrypt
       - ./data/certbot/www:/var/www/certbot
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-
-
-secrets:
-  mailgun_auth_file:
-    file: .secret.mailgun_auth_file
-  admin_postgres_user_file:
-    file: .secret.admin_postgres_user_file
-  admin_postgres_password_file:
-    file: .secret.admin_postgres_password_file
-  server_postgres_password_file:
-    file: .secret.server_postgres_password_file

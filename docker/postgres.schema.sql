@@ -1,9 +1,9 @@
 create extension citext;
 
-\set rust_server_password `tr -d "[:space:]" < /run/secrets/server_postgres_password_file`
+\set rust_server_password `echo $SERVER_POSTGRES_PASSWORD | tr -d "[:space:]"`
 create role rust_server_user login password :'rust_server_password';
 
--- \set node_client_password `tr -d "[:space:]" < /run/secrets/client_postgres_password_file`
+-- \set node_client_password `echo $CLIENT_POSTGRES_PASSWORD | tr -d "[:space:]"`
 -- create role node_client_user login password :'node_client_password';
 
 create table subscription (
