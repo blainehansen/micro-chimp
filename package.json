@@ -7,7 +7,7 @@
 	"main": "dist/client.js",
 	"bin": {
 		"setup": "dist/setup.js",
-		"client": "dist/client.js"
+		"codegen": "dist/codegen.js"
 	},
 	"scripts": {
 		"test": "npm run build && node ./dist/codegen.js site_names_test.yml dudes@dudes.com && rm site_name_enum.sql && mv sites.rs src && cargo check && rm nginx.conf && rm deploy.*.sh",
