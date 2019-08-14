@@ -4,13 +4,14 @@ import webpack from 'webpack'
 export default {
 	target: 'node',
 	entry: {
-		client: './bin/client.ts',
-		codegen: './bin/codegen.ts',
-		setup: './bin/setup.ts',
+		'bin/send-mail': './bin/send-mail.ts',
+		'bin/codegen': './bin/codegen.ts',
+		'bin/initialize': './bin/initialize.ts',
 	},
 	output: {
 		path: path.join(__dirname, 'dist'),
 		filename: '[name].js',
+		libraryTarget: 'commonjs',
 	},
 
 	resolve: {
@@ -19,7 +20,11 @@ export default {
 
 	module: {
 		rules: [
-			{ test: /\.ts$/, loader: 'ts-loader', exclude: [/node_modules/, /test/] },
+			{
+				test: /\.ts$/,
+				loader: 'ts-loader',
+				exclude: [/node_modules/, /test/],
+			},
 			{ test: /(\.sql|\.yml|\.Dockerfile|\.sh|\.conf)$/, loader: 'raw-loader' },
 		]
 	},

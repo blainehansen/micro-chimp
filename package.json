@@ -4,14 +4,15 @@
 	"description": "A tiny and simple email signup server.",
 	"author": "Blaine Hansen <faichenshing@gmail.com>",
 	"license": "MIT",
-	"main": "dist/client.js",
+	"main": "dist/index.js",
 	"bin": {
-		"setup": "dist/setup.js",
-		"codegen": "dist/codegen.js"
+		"send-mail": "dist/bin/send-mail.js",
+		"initialize": "dist/bin/initialize.js",
+		"codegen": "dist/bin/codegen.js"
 	},
 	"scripts": {
-		"test": "npm run build && node ./dist/codegen.js site_names_test.yml dudes@dudes.com && rm site_name_enum.sql && mv sites.rs src && cargo check && rm nginx.conf && rm deploy.*.sh",
-		"build": "rm -Rf dist && webpack -p",
+		"test": "npm run build && node ./dist/bin/codegen.js site_names_test.yml dudes@dudes.com && rm site_name_enum.sql && mv sites.rs src && cargo check && rm nginx.conf && rm deploy.*.sh",
+		"build": "rm -Rf dist && webpack && tsc -p . --target es6 --module es6",
 		"preversion": "npm test",
 		"version": "npm run build",
 		"postversion": "git push origin master && git push origin master --tags && npm publish"
@@ -38,19 +39,26 @@
 		"url": "https://github.com/blainehansen/micro-chimp/issues"
 	},
 	"homepage": "https://github.com/blainehansen/micro-chimp#readme",
+	"peerDependencies": {
+		"axios": "0.18.x"
+	},
 	"dependencies": {
-		"axios": "^0.19.0",
 		"minimist": "^1.2.0",
 		"pg": "^7.11.0",
 		"pg-cursor": "^2.0.0",
 		"qs": "^6.7.0"
 	},
 	"devDependencies": {
+		"@babel/core": "^7.5.5",
 		"@types/node": "^12.6.8",
+		"@types/shelljs": "^0.8.5",
 		"@types/snake-case": "^1.1.2",
 		"@types/webpack": "^4.32.1",
 		"@types/yaml": "^1.0.2",
+		"axios": "^0.18.1",
+		"babel-loader": "^8.0.6",
 		"raw-loader": "^3.0.0",
+		"shelljs": "^0.8.3",
 		"snake-case": "^2.1.0",
 		"ts-loader": "^6.0.4",
 		"ts-node": "^8.3.0",

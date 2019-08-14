@@ -1,15 +1,19 @@
 {
 	"compilerOptions": {
-		"lib": ["ESNext"],
-		"target": "ESNext",
+		"target": "es5",
 		"module": "commonjs",
-		"declaration": true,
 		"moduleResolution": "node",
+		"declaration": true,
 		"strict": true,
 		"outDir": "dist",
 		"esModuleInterop": true,
 		"allowSyntheticDefaultImports": true,
+		"lib": [
+			"esnext",
+			"dom",
+			"dom.iterable",
+			"scripthost"
+		]
 	},
-	"include": ["bin/**/*"]
+	"include": ["lib/**/*"]
 }
-
