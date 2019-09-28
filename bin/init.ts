@@ -8,12 +8,10 @@ shell.config.verbose = true
 
 const dir = process.argv[2] || '.'
 
-if (!fs.existsSync(dir)) {
-	fs.mkdirSync(dir)
-}
+shell.mkdir('-p', dir)
 
-function p(path: string) {
-	return path.join(dir, path)
+function p(file_path: string) {
+	return path.join(dir, file_path)
 }
 
 const base_dockerfile = require('../docker/micro-chimp.Dockerfile').default
@@ -37,7 +35,7 @@ if (!fs.existsSync(p('.env'))) {
 	fs.writeFileSync(p('.env'), [
 		"# Go to the digital ocean api key page:",
 		"# https://cloud.digitalocean.com/settings/api/tokens",
-		"# generate a new key, and put it here."
+		"# generate a new key, and put it here.",
 		"DIGITAL_OCEAN_KEY=",
 		"",
 		"# Go to the mailgun api security page:",
@@ -76,3 +74,5 @@ package_json['husky']['hooks'] = {
 	"pre-commit": "git secret hide && git add -u",
 }
 fs.writeFileSync('./package.json', JSON.stringify(package_json))
+
+shell.cd(dir)

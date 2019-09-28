@@ -17,7 +17,8 @@ export function parse_sites() {
 	if (sites_result instanceof Err) throw new Error(`your site_names yaml file wasn't formatted correctly: ${sites_result.error}`)
 	const sites = sites_result.value
 
-	if (Object.keys(sites).length === 0) throw new Error("You haven't included any sites in your yml file!")
+	if (Object.keys(sites).length === 0)
+		throw new Error("You haven't included any sites in your yml file!")
 	return sites
 }
 

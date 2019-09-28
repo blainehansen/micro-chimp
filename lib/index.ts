@@ -27,7 +27,7 @@ export class MicroChimpClient {
 	readonly site_name: string
 	constructor(
 		readonly client: AxiosStatic,
-		readonly subdomain = 'subscriptions',
+		// readonly subdomain = 'subscriptions',
 	) {
 		const site_url = window.location.host
 		this.site_url = site_url
@@ -35,7 +35,8 @@ export class MicroChimpClient {
 	}
 
 	private format_url(route: 'new-email' | 'verify-email' | 'unsubscribe') {
-		return `https://${this.subdomain}.${this.site_url}/${route}`
+		// return `https://${this.subdomain}.${this.site_url}/${route}`
+		return `https://subscriptions.${this.site_url}/${route}`
 	}
 
 	new_email(email: string): Promise<MicroChimpResult> {

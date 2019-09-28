@@ -48,6 +48,9 @@ if (options_result instanceof Err)
 
 const { live, email } = options_result.value
 
+const sites = parse_sites()
+const domain_args = Object.keys(sites).map(site_url => `-d subscriptions.${site_url}`)
+
 const [env_args, _] = live
 	? [
 		`--email ${email} --no-eff-email`,
@@ -89,9 +92,6 @@ shell.exec(
 		rm -Rf /etc/letsencrypt/archive/${cert_dir_name} && \
 		rm -Rf /etc/letsencrypt/renewal/${cert_dir_name}.conf" certbot`
 )
-
-const sites = parse_sites()
-const domain_args = Object.keys(sites).map(site_url => `-d subscriptions.${site_url}`)
 
 shell.exec(
 	`docker-compose run --rm --entrypoint " \
