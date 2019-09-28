@@ -21,7 +21,6 @@ which git-secret # https://git-secret.io/installation
 # this will include things like a docker-compose.yml,
 # and a .env file that will be encrypted using `git-secret`
 npx -p micro-chimp init ./my-deployment-directory
-cd my-deployment-directory
 
 # `init` creates some files you'll have to fill in
 

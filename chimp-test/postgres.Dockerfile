@@ -1,9 +1,6 @@
 FROM blainehansen/micro-chimp:codegen as codegen
-
-# ARG TYPE='postgres'
+COPY sites_manifest.yml .
 RUN ts-node codegen.ts
 
-FROM postgres:11-alpine
-
+FROM blainehansen/micro-chimp:postgres
 COPY --from=codegen ./site_name_enum.sql /docker-entrypoint-initdb.d/schema_0.sql
-COPY ./postgres.schema.sql /docker-entrypoint-initdb.d/schema_1.sql

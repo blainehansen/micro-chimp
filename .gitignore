@@ -3,6 +3,7 @@
 
 curl.scratch.sh
 node_modules
+bin/init.ts
 
 !docker/site_names.yml
 sites.rs

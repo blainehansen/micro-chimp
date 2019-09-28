@@ -6,13 +6,15 @@
 	"license": "MIT",
 	"main": "dist/index.js",
 	"bin": {
+		"create-machine": "dist/bin/create-machine.js",
+		"destroy-machine": "dist/bin/destroy-machine.js",
+		"init": "dist/bin/init.js",
 		"send-mail": "dist/bin/send-mail.js",
-		"initialize": "dist/bin/initialize.js",
-		"codegen": "dist/bin/codegen.js"
+		"unpack-machine": "dist/bin/unpack-machine.js"
 	},
 	"scripts": {
 		"test": "npm run build && node ./dist/bin/codegen.js site_names_test.yml dudes@dudes.com && rm site_name_enum.sql && mv sites.rs src && cargo check && rm nginx.conf && rm deploy.*.sh",
-		"build": "rm -Rf dist && webpack && tsc -p . --target es6 --module es6",
+		"build": "rm -Rf dist && ts-node ./bin/embed-file-text.ts && tsc -p . --target es6 --module es6",
 		"preversion": "npm test",
 		"version": "npm run build",
 		"postversion": "git push origin master && git push origin master --tags && npm publish"
@@ -48,29 +50,20 @@
 		"qs": "^6.7.0"
 	},
 	"devDependencies": {
-		"@babel/core": "^7.5.5",
 		"@types/dotenv": "^6.1.1",
-		"@types/inquirer": "^6.5.0",
 		"@types/minimist": "^1.2.0",
 		"@types/node": "^12.6.8",
 		"@types/shelljs": "^0.8.5",
 		"@types/snake-case": "^1.1.2",
-		"@types/webpack": "^4.32.1",
 		"@types/yaml": "^1.0.2",
 		"axios": "^0.18.1",
-		"babel-loader": "^8.0.6",
 		"dotenv": "^8.1.0",
-		"inquirer": "^6.5.1",
 		"minimist": "^1.2.0",
-		"raw-loader": "^3.0.0",
 		"shelljs": "^0.8.3",
 		"snake-case": "^2.1.0",
-		"ts-loader": "^6.0.4",
-		"ts-node": "^8.3.0",
+		"ts-node": "^8.4.1",
 		"ts.data.json": "^0.2.0",
 		"typescript": "^3.5.3",
-		"webpack": "^4.36.1",
-		"webpack-cli": "^3.3.6",
 		"yaml": "^1.6.0"
 	}
 }

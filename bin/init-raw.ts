@@ -14,12 +14,6 @@ function p(file_path: string) {
 	return path.join(dir, file_path)
 }
 
-const base_dockerfile = require('../docker/micro-chimp.Dockerfile').default
-const postgres_dockerfile = require('../docker/postgres.Dockerfile').default
-const nginx_dockerfile = require('../docker/nginx.Dockerfile').default
-const docker_compose_yml = require('../docker/docker-compose.yml').default
-const sites_manifest_yml = require('../docker/sites_manifest.yml').default
-
 fs.writeFileSync(p('micro-chimp.Dockerfile'), base_dockerfile)
 fs.writeFileSync(p('postgres.Dockerfile'), postgres_dockerfile)
 fs.writeFileSync(p('nginx.Dockerfile'), nginx_dockerfile)
