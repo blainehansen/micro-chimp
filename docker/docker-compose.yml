@@ -28,7 +28,7 @@ services:
     tty: true
     restart: unless-stopped
     environment:
-      - MAILGUN_AUTH=${MAILGUN_API_KEY}
+      - MAILGUN_API_KEY=${MAILGUN_API_KEY}
       - SERVER_POSTGRES_PASSWORD=${SERVER_POSTGRES_PASSWORD}
 
   nginx:

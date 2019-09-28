@@ -264,7 +264,7 @@ fn new_email(req: &HttpRequest<State>) -> impl Future<Item = HttpResponse, Error
 								.from_err()
 								.and_then(|msg| {
 									http_client::post(msg.mailgun_url)
-										.header(actix_web::http::header::AUTHORIZATION, MAILGUN_AUTH.to_owned())
+										.header(actix_web::http::header::AUTHORIZATION, MAILGUN_API_KEY.to_owned())
 										.form(msg.mailgun_form)
 										.unwrap()
 										.send()
@@ -411,8 +411,8 @@ fn get_env(env_var: &'static str) -> String {
 }
 
 lazy_static! {
-	static ref MAILGUN_AUTH: HeaderValue = {
-		let contents = get_env("MAILGUN_AUTH");
+	static ref MAILGUN_API_KEY: HeaderValue = {
+		let contents = get_env("MAILGUN_API_KEY");
 		let auth = base64_encode(contents.trim().as_bytes());
 		HeaderValue::from_bytes(format!("Basic {}", auth).as_bytes()).expect("couldn't construct valid header")
 	};
@@ -421,7 +421,7 @@ lazy_static! {
 fn main() {
 	std::thread::sleep(std::time::Duration::from_secs(5));
 
-	assert!(MAILGUN_AUTH.to_owned() != "");
+	assert!(MAILGUN_API_KEY.to_owned() != "");
 
 	std::env::set_var("RUST_LOG", "micro_chimp=info");
 	pretty_env_logger::init();
