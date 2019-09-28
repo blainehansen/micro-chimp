@@ -43,13 +43,14 @@
 		"axios": "0.18.x"
 	},
 	"dependencies": {
-		"minimist": "^1.2.0",
 		"pg": "^7.11.0",
 		"pg-cursor": "^2.0.0",
 		"qs": "^6.7.0"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.5.5",
+		"@types/inquirer": "^6.5.0",
+		"@types/minimist": "^1.2.0",
 		"@types/node": "^12.6.8",
 		"@types/shelljs": "^0.8.5",
 		"@types/snake-case": "^1.1.2",
@@ -57,6 +58,8 @@
 		"@types/yaml": "^1.0.2",
 		"axios": "^0.18.1",
 		"babel-loader": "^8.0.6",
+		"inquirer": "^6.5.1",
+		"minimist": "^1.2.0",
 		"raw-loader": "^3.0.0",
 		"shelljs": "^0.8.3",
 		"snake-case": "^2.1.0",

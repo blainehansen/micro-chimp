@@ -25,14 +25,17 @@ function convert_error(error: AxiosError) {
 export class MicroChimpClient {
 	readonly site_url: string
 	readonly site_name: string
-	constructor(readonly client: AxiosStatic) {
+	constructor(
+		readonly client: AxiosStatic,
+		readonly subdomain = 'subscriptions',
+	) {
 		const site_url = window.location.host
 		this.site_url = site_url
 		this.site_name = site_url.replace(/\./g, '_').toLowerCase()
 	}
 
 	private format_url(route: 'new-email' | 'verify-email' | 'unsubscribe') {
-		return `https://subscriptions.${this.site_url}/${route}`
+		return `https://${this.subdomain}.${this.site_url}/${route}`
 	}
 
 	new_email(email: string): Promise<MicroChimpResult> {

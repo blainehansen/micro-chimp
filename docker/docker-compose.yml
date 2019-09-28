@@ -12,6 +12,7 @@ services:
       - POSTGRES_DB=database
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - SERVER_POSTGRES_PASSWORD=${SERVER_POSTGRES_PASSWORD}
     volumes:
       - /postgres-data:/var/lib/postgresql/data
     command: postgres -c 'max_wal_size=2GB'

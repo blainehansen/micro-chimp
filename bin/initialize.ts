@@ -30,3 +30,9 @@ fs.writeFileSync('destroy_machine.sh', destroy_machine_sh)
 
 fs.writeFileSync('nginx.normal.conf', nginx_normal_conf)
 fs.writeFileSync('nginx.secure.conf', nginx_secure_conf)
+
+
+// initialize, creates all necessary files, which are basically just secrets
+// create-and-build, creates machine, gets ip? builds all the images
+//
+

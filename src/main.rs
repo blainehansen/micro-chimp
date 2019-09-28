@@ -170,7 +170,7 @@ impl From<actix::MailboxError> for GenericError {
 
 impl From<actix_web::error::JsonPayloadError> for GenericError {
 	fn from(error: actix_web::error::JsonPayloadError) -> Self {
-		match error {
+		match dbg!(error) {
 			actix_web::error::JsonPayloadError::Deserialize(_) => GenericError::Unprocessable,
 			_ => GenericError::BadRequest,
 		}
@@ -204,7 +204,10 @@ struct NewEmailMessage {
 
 impl NewEmailJsonInput {
 	fn into_message(self) -> Result<NewEmailMessage, GenericError> {
-		self.validate().ok().ok_or(GenericError::BadRequest)?;
+		self.validate()
+			.map_err(|e| dbg!(e))
+			.ok().ok_or(GenericError::BadRequest)?;
+
 		let validation_token = generate_random_token().ok_or(GenericError::InternalServer)?;
 
 		let (mailgun_url, string_site_name, mailgun_form) = self.site_name.get_site_information(self.email, &validation_token);
@@ -439,10 +442,10 @@ fn main() {
 			.resource("/unsubscribe", |r| r.post().a(unsubscribe))
 	})
 		// .backlog(8192)
-		.bind("127.0.0.1:5050")
+		.bind("0.0.0.0:5050")
 		.unwrap()
 		.start();
 
-	info!("Started http server: 127.0.0.1:5050");
+	info!("Started http server: 0.0.0.0:5050");
 	let _ = sys.run();
 }

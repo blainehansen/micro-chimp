@@ -94,82 +94,32 @@ fs.writeFileSync('sites.rs', rust_file_string)
 
 
 const domain_names = Object.keys(sites).map(site_url => `subscriptions.${site_url}`)
+const comma_domain_names = domain_names.join(', ')
 
-const secure_nginx_certificates = domain_names.map(site_url => `server {
-	include /etc/nginx/includes/secure;
-	server_name ${site_url};
-	ssl_certificate /etc/letsencrypt/live/${site_url}/fullchain.pem;
-	ssl_certificate_key /etc/letsencrypt/live/${site_url}/privkey.pem;
-}`).join('\n\n')
+const secure_nginx_certificates = domain_names.map(site_url => ``).join('\n\n')
 
 const nginx_conf = `server {
 	include /etc/nginx/includes/normal;
-	server_name ${domain_names};
+	server_name ${comma_domain_names};
 }
 
-${secure_nginx_certificates}
+server {
+	include /etc/nginx/includes/secure;
+	server_name ${comma_domain_names};
+}
 `
 
 fs.writeFileSync('nginx.conf', nginx_conf)
 
 
 
-const DEPLOY_TEMPLATE = `eval $(docker-machine env micro-chimp)
-eval $(cat .secret.postgres.env)
-export MAILGUN_AUTH=$(tr -d "[:space:]" < .secret.mailgun_auth)
-
-docker-compose build
-
-docker-compose run --rm --entrypoint " \\
-	openssl dhparam -out /etc/letsencrypt/dhparam-2048.pem 2048" certbot
-
-domains=(${domain_names})
-
-for domain in "\${domains[@]}"; do
-	path="/etc/letsencrypt/live/$domain"
-	docker-compose run --rm --entrypoint "mkdir -p $path" certbot
-
-	docker-compose run --rm --entrypoint " \\
-		openssl req -x509 -nodes -newkey rsa:1024 -days 1\\
-			-keyout '$path/privkey.pem' \\
-			-out '$path/fullchain.pem' \\
-			-subj '/CN=localhost'" certbot
-done
-
-docker-compose up --no-deps --force-recreate -d nginx
-
-domain_args=""
-for domain in "\${domains[@]}"; do
-
-	docker-compose run --rm --entrypoint " \\
-		rm -Rf /etc/letsencrypt/live/$domain && \\
-		rm -Rf /etc/letsencrypt/archive/$domain && \\
-		rm -Rf /etc/letsencrypt/renewal/$domain.conf" certbot
-
-  domain_args="$domain_args -d $domain"
-done
-
-docker-compose run --rm --entrypoint " \\
-	certbot certonly --webroot -w /var/www/certbot \\
-		{staging_argument} \\
-		{email_argument} \\
-		$domain_args \\
-		--rsa-key-size 4096 \\
-		--agree-tos \\
-		--force-renewal" certbot
-
-docker-compose up --force-recreate -d
-`
+const DEPLOY_TEMPLATE = `source ./deploy.sh {live_flag} ${email} ${domain_names.join(' ')}`
 
 fs.writeFileSync(
 	'deploy.testing.sh',
-	DEPLOY_TEMPLATE
-		.replace('{staging_argument}', '--staging')
-		.replace('{email_argument}', '--register-unsafely-without-email'),
+	DEPLOY_TEMPLATE.replace('{live_flag}', '0')
 )
 fs.writeFileSync(
 	'deploy.production.sh',
-	DEPLOY_TEMPLATE
-		.replace('{staging_argument}', '')
-		.replace('{email_argument}', `--email ${email} --no-eff-email`),
+	DEPLOY_TEMPLATE.replace('{live_flag}', '1')
 )

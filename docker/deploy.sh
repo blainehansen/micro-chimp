@@ -1,48 +1,92 @@
-email=$1
-testing=$2
+live_flag=$1
+email=$2
 
-if ! [[ "$testing" =~ ^[0-9]+$ ]]; then
-	echo "You've given a testing flag that isn't a number, try again: $testing"
+if ! [[ "$live_flag" =~ ^[0-9]+$ ]] || [ -z $live_flag ]; then
+	echo "You need to give a live_flag of 0 or 1 as the first argument."
 	exit 1
 fi
 
-if [[ "$testing" -ne '0' && "$testing" -ne '1' ]] 2> /dev/null; then
-	echo "You've given a testing flag that isn't a 0 or a 1, try again: $testing"
+if [ -z $email ]; then
+	echo "You need to provide an email as the second argument. It will only be used to register you as the admin of your letsencrypt certificate."
 	exit 1
 fi
 
-if [[ "$email" =~ ^[0-9]+$ ]]; then
-	echo "You've given an email that looks like the 'testing' flag, try again: $email"
+domains=("$@")
+domains=("${domains[@]:2}")
+domains_length=${#domains[@]}
+if [ $domains_length -eq 0 ]; then
+	echo "You need to provide some domains as the remaining arguments after the live_flag and your email."
 	exit 1
 fi
 
-# sting data found for $domains. Continue and replace existing certificate? (y/N) " decision
-# # if [ "$decision" != "Y" ] && [ "$decision" != "y" ]; then
-# # 	exit
-# # fi
+echo "Got arguments:"
+echo "  live_flag: $live_flag"
+echo "  email: $email"
+echo "  domains: ${domains[@]}"
+echo
 
+domain_args=""
+echo "Running for these domains:"
+for domain in "${domains[@]}"; do
+	echo "  $domain"
+  domain_args="$domain_args -d $domain"
+done
+echo
 
-if [ ! -z "$email" ]; then
-	echo "provided email: $email"
-fi
-
-if [ "$testing" -eq '0' ]; then
-	echo "in testing mode"
+env_args=""
+if [ $live_flag -eq '1' ]; then
+	echo "Doing it live!!! Using email: $email"
+	env_args="--email $email --no-eff-email"
 else
-	echo 'in live mode!!'
-	# read -p "Existing data found for $domains. Continue and replace existing certificate? (y/N) " decision
-	# if [ "$decision" != "Y" ] && [ "$decision" != "y" ]; then
-	# 	exit
-	# fi
+	echo "Just doing a test run."
+	env_args="--staging --register-unsafely-without-email"
 fi
 
-# if email isn't set and not testing
-if [ -z "$email" ] && [ "$testing" -eq "0" ]; then
-	echo "You haven't provided an email to be registered as the admin of your TLS certificate, and you're in live mode. try again"
-	exit 1
-fi
 
-if [ ! -z "$email" ] && [ "$testing" -eq '1' ]; then
-	echo "Email is set but in testing mode. Ignoring email."
-fi
+eval $(docker-machine env micro-chimp)
+eval $(cat .secret.postgres.env)
+export MAILGUN_AUTH=$(tr -d "[:space:]" < .secret.mailgun_auth)
 
+docker-compose build
+
+docker-compose run --rm --entrypoint " \
+	openssl dhparam -out /etc/letsencrypt/dhparam-2048.pem 2048" certbot
+
+
+cert_dir_name="micro-chimp-domains"
+cert_path="/etc/letsencrypt/live/$cert_dir_name"
+echo "creating fake cert at: $cert_path"
+docker-compose run --rm --entrypoint "mkdir -p $cert_path" certbot
+docker-compose run --rm --entrypoint " \
+	openssl req -x509 -nodes -newkey rsa:1024 -days 1\
+		-keyout '$cert_path/privkey.pem' \
+		-out '$cert_path/fullchain.pem' \
+		-subj '/CN=localhost'" certbot
+
+
+echo "starting nginx"
+docker-compose up --force-recreate -d nginx
+
+
+echo "deleting fake certs"
+docker-compose run --rm --entrypoint " \
+	rm -Rf /etc/letsencrypt/live/$cert_dir_name && \
+	rm -Rf /etc/letsencrypt/archive/$cert_dir_name && \
+	rm -Rf /etc/letsencrypt/renewal/$cert_dir_name.conf" certbot
+
+
+docker-compose run --rm --entrypoint " \
+	certbot certonly
+		--webroot -w /var/www/certbot \
+		$domain_args \
+		--cert-name $cert_dir_name \
+		$env_args \
+		--rsa-key-size 4096 \
+		--agree-tos \
+		--force-renewal" certbot
+
+echo "reloading nginx"
+docker-compose exec nginx nginx -s reload
+
+docker-compose up -d
+docker-compose logs -f --timestamps

@@ -1,7 +1,9 @@
 # each of these entries is for
 <url>: # add your base url here (example.com)
   from_email: <account>@<url> # (no-reply@example.com)
+  # this text will be used as the subject of the initial verification email
   subject_text: "Hello! Welcome to <site_name>!"
+  # and this text will be the body
   body_text: |
     Hello! Thank you for signing up to join <site_name>.
 
