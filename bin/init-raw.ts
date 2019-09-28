@@ -50,8 +50,6 @@ shell.exec("git secret init")
 shell.exec("git secret tell -m")
 shell.config.fatal = true
 
-shell.echo("Installing husky npm package for pre-commit git hook, used to make sure `git-secret hide` is called")
-shell.exec("npm install --save-dev husky")
 
 shell.exec("git secret add sites_manifest.yml .env")
 shell.exec("git secret hide")
@@ -70,5 +68,8 @@ package_json['husky']['hooks'] = {
 	"pre-commit": "git secret hide && git add -u",
 }
 fs.writeFileSync('./package.json', JSON.stringify(package_json))
+
+shell.echo("Installing husky npm package for pre-commit git hook, used to make sure `git-secret hide` is called")
+shell.exec("npm install --save-dev husky")
 
 shell.cd(dir)
