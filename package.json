@@ -13,8 +13,8 @@
 		"unpack-machine": "dist/bin/unpack-machine.js"
 	},
 	"scripts": {
-		"test": "npm run build && node ./dist/bin/codegen.js site_names_test.yml dudes@dudes.com && rm site_name_enum.sql && mv sites.rs src && cargo check && rm nginx.conf && rm deploy.*.sh",
-		"build": "rm -Rf dist && ts-node ./bin/embed-file-text.ts && tsc -p . --target es6 --module es6",
+		"test": "npm run build && node ./dist/bin/codegen.js && rm site_name_enum.sql nginx.conf && mv sites.rs src && cargo check",
+		"build": "rm -Rf dist && ts-node ./bin/embed-file-text.ts && tsc -p .",
 		"preversion": "npm test",
 		"version": "npm run build",
 		"postversion": "git push origin master && git push origin master --tags && npm publish"

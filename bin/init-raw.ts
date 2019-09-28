@@ -45,8 +45,10 @@ if (!fs.existsSync(p('.env'))) {
 }
 
 shell.echo("Initializing this repo with git-secret, and adding this current user to the allowed users.")
+shell.config.fatal = false
 shell.exec("git secret init")
 shell.exec("git secret tell -m")
+shell.config.fatal = true
 
 shell.echo("Installing husky npm package for pre-commit git hook, used to make sure `git-secret hide` is called")
 shell.exec("npm install --save-dev husky")
