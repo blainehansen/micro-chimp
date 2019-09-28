@@ -11,29 +11,46 @@ This server is written in asynchronous rust, which means it's incredibly high-pe
 To get a server set up from start to finish, just follow these steps:
 
 ```sh
-# set up a directory with the configs, secrets, and management files
-# this will include things like a docker-compose.yml,
-# and several secrets files
-npx -p micro-chimp init [deployment-management-directory-name = .]
+# make sure you have some dependencies
+which docker
+which docker-machine
+which docker-compose
+which git-secret # https://git-secret.io/installation
 
-# several files should have been created for you to inspect and fill with values
+# set up a directory with configs, secrets, and management files
+# this will include things like a docker-compose.yml,
+# and a .env file that will be encrypted using `git-secret`
+npx -p micro-chimp init ./my-deployment-directory
+cd my-deployment-directory
+
+# `init` creates some files you'll have to fill in
 
 # contains descriptions of the sites that will be managed by this server
 # you'll need to fill this in with the real sites you want to manage
-cat site_names.yml
-# needs to be filled in with a key
-# used to create the droplet where your server will run
-cat .secret.digital_ocean_key
-# needs to be filled in with your mailgun api key
-# used to send verification emails from the server
-cat .secret.mailgun_auth
-# contains user names and passwords for your postgres database
-# should have been filled with strong random passwords using `openssl`
-ls .secret.postgres.env
-```
+cat sites_manifest.yml
+# contains your secrets, such as database passwords and api keys
+# most of these have already been filled with cryptographically strong tokens
+# but two, MAILGUN_API_KEY and DIGITAL_OCEAN_KEY need to be filled in
+# the file has comments describing what they're for and where to get them
+ls .env
 
-```sh
-# creates a droplet
-./create_machine.sh
+# now that you've filled in all the right values,
+# you're ready to deploy!
 
+# creates a droplet that will run your server
+npx -p micro-chimp create-machine
+
+# deploy!
+# the default is to do a staging deploy that won't actually provision any certificates
+npx -p micro-chimp deploy --email person@example.com
+# add the --live switch to do it for real
+npx -p micro-chimp deploy --email person@example.com --live
+
+# tears down the droplet
+npx -p micro-chimp destroy-machine
+
+# used to unzip the machine config files and install them locally
+# this lets you manage the same server from different machines
+# this is safe since the machine config archive file is encrypted with `git-secret`
+npx -p micro-chimp unpack-machine
 ```
