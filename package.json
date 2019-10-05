@@ -47,24 +47,24 @@
 		"axios": "0.18.x"
 	},
 	"dependencies": {
-		"pg": "^7.11.0",
-		"pg-cursor": "^2.0.0",
 		"dotenv": "^8.1.0",
 		"minimist": "^1.2.0",
+		"pg": "^7.12.1",
+		"pg-cursor": "^2.0.0",
+		"qs": "^6.9.0",
 		"shelljs": "^0.8.3",
 		"snake-case": "^2.1.0",
-		"qs": "^6.7.0",
 		"ts-node": "^8.4.1",
-		"ts.data.json": "^0.2.0",
-		"yaml": "^1.6.0"
+		"ts.data.json": "^0.2.1",
+		"yaml": "^1.7.0"
 	},
 	"devDependencies": {
 		"@types/dotenv": "^6.1.1",
 		"@types/minimist": "^1.2.0",
-		"@types/node": "^12.6.8",
+		"@types/node": "^12.7.11",
 		"@types/shelljs": "^0.8.5",
 		"@types/yaml": "^1.0.2",
 		"axios": "^0.18.1",
-		"typescript": "^3.5.3"
+		"typescript": "^3.6.3"
 	}
 }
