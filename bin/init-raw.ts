@@ -1,7 +1,7 @@
 import * as fs from 'fs'
-import * as path from 'path'
 import * as shell from 'shelljs'
 import * as crypto from 'crypto'
+import { make_path } from './utils'
 
 shell.config.fatal = true
 shell.config.verbose = true
@@ -10,9 +10,7 @@ const dir = process.argv[2] || '.'
 
 shell.mkdir('-p', dir)
 
-function p(file_path: string) {
-	return path.join(dir, file_path)
-}
+const p = make_path(dir)
 
 fs.writeFileSync(p('micro-chimp.Dockerfile'), base_dockerfile)
 fs.writeFileSync(p('postgres.Dockerfile'), postgres_dockerfile)
@@ -60,6 +58,7 @@ shell.echo('micro-chimp.tar.gz').toEnd('.gitignore')
 
 
 const package_json = JSON.parse(fs.readFileSync('./package.json', 'utf-8'))
+package_json['micro-chimp-dir'] = dir
 package_json['husky'] = {
 	...(package_json['husky'] || {}),
 }
@@ -71,5 +70,3 @@ fs.writeFileSync('./package.json', JSON.stringify(package_json))
 
 shell.echo("Installing husky npm package for pre-commit git hook, used to make sure `git-secret hide` is called")
 shell.exec("npm install --save-dev husky")
-
-shell.cd(dir)
