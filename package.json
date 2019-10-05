@@ -14,7 +14,7 @@
 	},
 	"scripts": {
 		"test": "npm run build && node ./dist/bin/codegen.js && rm site_name_enum.sql nginx.conf && mv sites.rs src && cargo check",
-		"build": "rm -Rf dist && ts-node ./bin/embed-file-text.ts && tsc -p .",
+		"build": "rm -Rf dist && ts-node ./bin/embed-file-text.ts && tsc -p tsconfig-bin.json && tsc -p tsconfig-lib.json",
 		"preversion": "npm test",
 		"version": "npm run build",
 		"postversion": "git push origin master && git push origin master --tags && npm publish"

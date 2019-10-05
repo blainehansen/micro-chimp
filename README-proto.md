@@ -26,12 +26,12 @@ npx -p micro-chimp init ./my-deployment-directory
 
 # contains descriptions of the sites that will be managed by this server
 # you'll need to fill this in with the real sites you want to manage
-cat sites_manifest.yml
+cat my-deployment-directory/sites_manifest.yml
 # contains your secrets, such as database passwords and api keys
 # most of these have already been filled with cryptographically strong tokens
 # but two, MAILGUN_API_KEY and DIGITAL_OCEAN_KEY need to be filled in
 # the file has comments describing what they're for and where to get them
-ls .env
+ls my-deployment-directory/.env
 
 # now that you've filled in all the right values,
 # you're ready to deploy!

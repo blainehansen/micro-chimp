@@ -1,27 +1,11 @@
 {
 	"compilerOptions": {
 		"target": "es6",
-		"module": "commonjs",
 		"moduleResolution": "node",
 		"declaration": true,
 		"strict": true,
 		"outDir": "dist",
 		"esModuleInterop": true,
-		"allowSyntheticDefaultImports": true,
-		"lib": [
-			"esnext",
-			"dom",
-			"dom.iterable",
-			"scripthost"
-		]
-	},
-	"include": [
-		"lib/**/*",
-		"bin/create-machine.ts",
-		"bin/deploy.ts",
-		"bin/destroy-machine.ts",
-		"bin/init.ts",
-		"bin/send-mail.ts",
-		"bin/unpack-machine.ts"
-	]
+		"allowSyntheticDefaultImports": true
+	}
 }
