@@ -1,9 +1,9 @@
 FROM blainehansen/micro-chimp:codegen as codegen
 COPY sites_manifest.yml .
-RUN ts-node codegen.ts
+RUN npx ts-node codegen.ts
 
 FROM blainehansen/micro-chimp:rust as rust-builder
-COPY --from=codegen ./sites.rs ./src/
+COPY --from=codegen /home/sites.rs ./src/
 RUN cargo build --release
 
 FROM scratch

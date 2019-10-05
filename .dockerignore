@@ -1,5 +1,4 @@
 node_modules/
 commands/
 target/
-bin/
 .git

@@ -7,8 +7,6 @@ import { get_dir } from './utils'
 
 const dir = get_dir()
 
-shell.pushd(dir)
-
 shell.config.fatal = true
 shell.config.verbose = true
 
@@ -71,6 +69,8 @@ const [env_args, _] = live
 		'--staging --register-unsafely-without-email',
 		shell.echo("Just doing a test run."),
 	]
+
+shell.pushd(dir)
 
 shell.exec('eval $(docker-machine env micro-chimp)')
 shell.exec(`docker-compose build`)

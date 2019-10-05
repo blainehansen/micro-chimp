@@ -1,5 +1,11 @@
 FROM node
 
-RUN npm install ts-node typescript yaml snake-case ts.data.json
+WORKDIR home
+RUN npm init -y
 
 COPY bin/codegen.ts .
+COPY tsconfig-bin.json .
+COPY tsconfig.json .
+COPY package.json .
+
+RUN npm install
