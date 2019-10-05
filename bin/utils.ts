@@ -1,6 +1,6 @@
 import fs from 'fs'
-import * as path from 'path'
-import * as shell from 'shelljs'
+import path from 'path'
+import shell from 'shelljs'
 
 export function get_dir() {
 	const package_json = JSON.parse(fs.readFileSync('./package.json', 'utf-8'))

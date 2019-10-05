@@ -1,6 +1,6 @@
-import * as fs from 'fs'
-import * as shell from 'shelljs'
-import * as crypto from 'crypto'
+import fs from 'fs'
+import shell from 'shelljs'
+import crypto from 'crypto'
 import { make_path } from './utils'
 
 shell.config.fatal = true

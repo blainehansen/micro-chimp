@@ -1,4 +1,4 @@
-import * as shell from 'shelljs'
+import shell from 'shelljs'
 import { make_dir_path } from './utils'
 
 shell.config.fatal = true

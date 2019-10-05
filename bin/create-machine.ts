@@ -1,7 +1,7 @@
-import * as fs from 'fs'
-import * as path from 'path'
-import * as shell from 'shelljs'
-import * as dotenv from 'dotenv'
+import fs from 'fs'
+import path from 'path'
+import shell from 'shelljs'
+import dotenv from 'dotenv'
 import { make_dir_path } from './utils'
 
 shell.config.fatal = true
