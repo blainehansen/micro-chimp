@@ -1,7 +1,6 @@
 FROM node
 
-WORKDIR home
-RUN npm init -y
+WORKDIR /codegen
 
 COPY bin/codegen.ts .
 COPY tsconfig-bin.json .

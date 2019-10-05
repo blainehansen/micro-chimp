@@ -3,4 +3,4 @@ COPY sites_manifest.yml .
 RUN npx ts-node codegen.ts
 
 FROM blainehansen/micro-chimp:nginx
-COPY --from=codegen /home/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=codegen /codegen/nginx.conf /etc/nginx/conf.d/default.conf

@@ -3,7 +3,7 @@ COPY sites_manifest.yml .
 RUN npx ts-node codegen.ts
 
 FROM blainehansen/micro-chimp:rust as rust-builder
-COPY --from=codegen /home/sites.rs ./src/
+COPY --from=codegen /codegen/sites.rs ./src/
 RUN cargo build --release
 
 FROM scratch
