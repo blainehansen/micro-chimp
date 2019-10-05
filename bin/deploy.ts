@@ -3,10 +3,11 @@ import parse_args from 'minimist'
 import { JsonDecoder, Result, Err } from 'ts.data.json'
 
 import { parse_sites } from './codegen'
-import { get_dir, make_path } from './utils'
+import { get_dir } from './utils'
 
 const dir = get_dir()
-const p = make_path(dir)
+
+shell.pushd(dir)
 
 shell.config.fatal = true
 shell.config.verbose = true
@@ -58,7 +59,7 @@ if (options_result.value.help) {
 
 const { live, email } = options_result.value
 
-const sites = parse_sites(dir)
+const sites = parse_sites()
 const domain_args = Object.keys(sites).map(site_url => `-d subscriptions.${site_url}`)
 
 const [env_args, _] = live
@@ -71,13 +72,11 @@ const [env_args, _] = live
 		shell.echo("Just doing a test run."),
 	]
 
-const dcf = `-f ${p('docker-compose.yml')}`
-
 shell.exec('eval $(docker-machine env micro-chimp)')
-shell.exec(`docker-compose ${dcf} build`)
+shell.exec(`docker-compose build`)
 
 shell.exec(
-	`docker-compose ${dcf} run --rm --entrypoint " \
+	`docker-compose run --rm --entrypoint " \
 		openssl dhparam -out /etc/letsencrypt/dhparam-2048.pem 2048" certbot`
 )
 
@@ -85,9 +84,9 @@ shell.exec(
 const cert_dir_name = "micro-chimp-domains"
 const cert_path = `/etc/letsencrypt/live/${cert_dir_name}`
 shell.echo(`creating fake cert at: ${cert_path}`)
-shell.exec(`docker-compose ${dcf} run --rm --entrypoint "mkdir -p ${cert_path}" certbot`)
+shell.exec(`docker-compose run --rm --entrypoint "mkdir -p ${cert_path}" certbot`)
 shell.exec(
-	`docker-compose ${dcf} run --rm --entrypoint " \
+	`docker-compose run --rm --entrypoint " \
 		openssl req -x509 -nodes -newkey rsa:1024 -days 1 \
 			-keyout '${cert_path}/privkey.pem' \
 			-out '${cert_path}/fullchain.pem' \
@@ -95,18 +94,18 @@ shell.exec(
 )
 
 shell.echo("starting nginx")
-shell.exec(`docker-compose ${dcf} up --force-recreate -d nginx`)
+shell.exec(`docker-compose up --force-recreate -d nginx`)
 
 shell.echo("deleting fake certs")
 shell.exec(
-	`docker-compose ${dcf} run --rm --entrypoint " \
+	`docker-compose run --rm --entrypoint " \
 		rm -Rf /etc/letsencrypt/live/${cert_dir_name} && \
 		rm -Rf /etc/letsencrypt/archive/${cert_dir_name} && \
 		rm -Rf /etc/letsencrypt/renewal/${cert_dir_name}.conf" certbot`
 )
 
 shell.exec(
-	`docker-compose ${dcf} run --rm --entrypoint " \
+	`docker-compose run --rm --entrypoint " \
 		certbot certonly
 			--webroot -w /var/www/certbot \
 			${domain_args} \
@@ -118,7 +117,10 @@ shell.exec(
 )
 
 shell.echo("reloading nginx")
-shell.exec(`docker-compose ${dcf} exec nginx nginx -s reload`)
+shell.exec(`docker-compose exec nginx nginx -s reload`)
 
-shell.exec(`docker-compose ${dcf} up -d`)
-shell.exec(`docker-compose ${dcf} logs -f --timestamps`)
+shell.exec(`docker-compose up -d`)
+shell.exec(`docker-compose logs -f --timestamps`)
+
+
+shell.popd()

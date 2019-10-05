@@ -1,7 +1,6 @@
 import fs from 'fs'
 import shell from 'shelljs'
 import crypto from 'crypto'
-import { make_path } from './utils'
 
 shell.config.fatal = true
 shell.config.verbose = true
@@ -10,21 +9,21 @@ const dir = process.argv[2] || '.'
 
 shell.mkdir('-p', dir)
 
-const p = make_path(dir)
+shell.pushd(dir)
 
-fs.writeFileSync(p('micro-chimp.Dockerfile'), base_dockerfile)
-fs.writeFileSync(p('postgres.Dockerfile'), postgres_dockerfile)
-fs.writeFileSync(p('nginx.Dockerfile'), nginx_dockerfile)
-fs.writeFileSync(p('docker-compose.yml'), docker_compose_yml)
-if (!fs.existsSync(p('sites_manifest.yml')))
-	fs.writeFileSync(p('sites_manifest.yml'), sites_manifest_yml)
+fs.writeFileSync('micro-chimp.Dockerfile', base_dockerfile)
+fs.writeFileSync('postgres.Dockerfile', postgres_dockerfile)
+fs.writeFileSync('nginx.Dockerfile', nginx_dockerfile)
+fs.writeFileSync('docker-compose.yml', docker_compose_yml)
+if (!fs.existsSync('sites_manifest.yml'))
+	fs.writeFileSync('sites_manifest.yml', sites_manifest_yml)
 
 function randomToken() {
 	return crypto.randomBytes(128).toString('base64')
 }
 
-if (!fs.existsSync(p('.env'))) {
-	fs.writeFileSync(p('.env'), [
+if (!fs.existsSync('.env')) {
+	fs.writeFileSync('.env', [
 		"# Go to the digital ocean api key page:",
 		"# https://cloud.digitalocean.com/settings/api/tokens",
 		"# generate a new key, and put it here.",
@@ -42,6 +41,8 @@ if (!fs.existsSync(p('.env'))) {
 	].join('\n'))
 }
 
+shell.popd()
+
 shell.echo("Initializing this repo with git-secret, and adding this current user to the allowed users.")
 shell.config.fatal = false
 shell.exec("git secret init")
@@ -57,6 +58,7 @@ shell.echo('.env').toEnd('.gitignore')
 shell.echo('micro-chimp.tar.gz').toEnd('.gitignore')
 
 
+
 const package_json = JSON.parse(fs.readFileSync('./package.json', 'utf-8'))
 package_json['micro-chimp-dir'] = dir
 package_json['husky'] = {
@@ -70,3 +72,4 @@ fs.writeFileSync('./package.json', JSON.stringify(package_json))
 
 shell.echo("Installing husky npm package for pre-commit git hook, used to make sure `git-secret hide` is called")
 shell.exec("npm install --save-dev husky")
+

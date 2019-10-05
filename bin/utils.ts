@@ -1,5 +1,4 @@
 import fs from 'fs'
-import path from 'path'
 import shell from 'shelljs'
 
 export function get_dir() {
@@ -16,16 +15,4 @@ export function get_dir() {
 	}
 
 	return dir
-}
-
-export function make_path(dir: string) {
-	return function p(file_path: string) {
-		return path.join(dir, file_path)
-	}
-}
-
-
-export function make_dir_path() {
-	const dir = get_dir()
-	return make_path(dir)
 }

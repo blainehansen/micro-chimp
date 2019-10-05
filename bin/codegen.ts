@@ -2,7 +2,6 @@ import fs from 'fs'
 import YAML from 'yaml'
 import snake_case from 'snake-case'
 import { JsonDecoder, Err } from 'ts.data.json'
-import { make_path } from './utils'
 
 const site_declaration_decoder = JsonDecoder.dictionary(
 	JsonDecoder.object({
@@ -13,9 +12,8 @@ const site_declaration_decoder = JsonDecoder.dictionary(
 	'SiteDeclarations',
 )
 
-export function parse_sites(dir: string) {
-	const p = make_path(dir)
-	const sites_result = site_declaration_decoder.decode(YAML.parse(fs.readFileSync(p('./sites_manifest.yml'), 'utf-8')))
+export function parse_sites() {
+	const sites_result = site_declaration_decoder.decode(YAML.parse(fs.readFileSync('./sites_manifest.yml', 'utf-8')))
 	if (sites_result instanceof Err) throw new Error(`your site_names yaml file wasn't formatted correctly: ${sites_result.error}`)
 	const sites = sites_result.value
 
@@ -24,7 +22,7 @@ export function parse_sites(dir: string) {
 	return sites
 }
 
-const sites = parse_sites('.')
+const sites = parse_sites()
 
 
 const allowed_names = Object.keys(sites).map(site_url => `'${snake_case(site_url)}'`).join(', ')
