@@ -39,6 +39,8 @@ ls my-deployment-directory/.env
 # creates a droplet that will run your server
 npx -p micro-chimp create-machine
 
+# now that you have a machine, you need to set up DNS records to point your domain name to it
+
 # deploy!
 # the default is to do a staging deploy that won't actually provision any certificates
 npx -p micro-chimp deploy --email person@example.com

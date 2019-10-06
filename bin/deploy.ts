@@ -58,7 +58,9 @@ if (options_result.value.help) {
 const { live, email } = options_result.value
 
 const sites = parse_sites()
-const domain_args = Object.keys(sites).map(site_url => `-d subscriptions.${site_url}`)
+const domain_args = Object.keys(sites)
+	.map(site_url => `-d subscriptions.${site_url}`)
+	.join(' ')
 
 const [env_args, _] = live
 	? [
