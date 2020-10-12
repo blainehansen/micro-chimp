@@ -7,11 +7,7 @@ create role rust_server_user login password :'rust_server_password';
 -- create role node_client_user login password :'node_client_password';
 
 create table subscription (
-	email citext not null check (email ~* '^.+@.+\..+$'),
-	site_name site_name_enum not null,
-
-	primary key (email, site_name),
-
+	email citext primary key check (email ~* '^.+@.+\..+$'),
 	validation_token text unique check (character_length(validation_token) = 88),
 	unsubscribed_with text
 );
@@ -27,9 +23,7 @@ create function is_validated(subscription) returns boolean as $$
 $$ language sql immutable;
 
 create table unsubscribe_token (
-	site_name site_name_enum not null,
-	token text not null check (character_length(token) = 88),
-	primary key (site_name, token),
+	token text primary key check (character_length(token) = 88),
 	description text not null
 );
 
