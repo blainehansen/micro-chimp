@@ -64,7 +64,7 @@
 		"@types/node": "^12.7.11",
 		"@types/shelljs": "^0.8.5",
 		"@types/yaml": "^1.0.2",
-		"axios": "^0.18.1",
+		"axios": "^0.21.1",
 		"typescript": "^3.6.3"
 	}
 }
