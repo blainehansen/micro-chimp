@@ -1,81 +1,31 @@
-// https://actix.rs/docs/http2/
-use actix_web::{get, web::{self, Path}, Responder};
-type Pool = web::Data<sqlx::PgPool>;
+// https://gmosx.ninja/posts/2020/09/21/how-to-deploy-a-rust-service-to-google-cloud-run
+// https://cloud.google.com/run/docs/quickstarts/build-and-deploy/other
+// http://opreview.blogspot.com/2017/03/how-to-upload-to-google-cloud-storage.html
 
+use actix_web::{web, http::{self, StatusCode}, Responder, HttpResponse};
+use serde::{Serialize, Deserialize};
 
-fn get_env(env_var: &'static str) -> std::io::Result<String> {
-	std::env::var(env_var)
-		.map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, format!("{} isn't set", env_var)))
-		.map(|v| v.trim().to_string())
+fn from_base64<'d, D>(deserializer: D) -> Result<String, D::Error>
+	where D: serde::Deserializer<'d>
+{
+	use serde::de::Error;
+	let de = String::deserialize(deserializer)?;
+	let buf = base64::decode_config(&de, base64::URL_SAFE).map_err(|_| Error::custom("unable to decode as base64"))?;
+	String::from_utf8(buf).map_err(|_| Error::custom(""))
 }
 
-// macro_rules! query_one {
-// 	($query: expr, $($args: expr),+) => {
-// 		//
-// 	};
-// }
-
-#[get("/{id}/{name}")]
-async fn index(
-	Path((id, name)): Path<(i64, String)>,
-	pool: Pool,
-) -> actix_web::Result<String> {
-// ) -> impl Responder {
-	let row = sqlx::query!(
-			r#"select $1::bigint as "yo!", $2::text as "dude!""#,
-			id, name,
-		)
-		.fetch_one(&**pool)
-		.await
-		.map_err(|_| actix_web::error::ErrorInternalServerError("database"))?;
-
-	Ok(format!("id: {}; Hello {}! ", row.yo, row.dude))
+fn base64_encode(s: &[u8]) -> String {
+	base64::encode_config(s, base64::URL_SAFE)
 }
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-	let pool = sqlx::postgres::PgPoolOptions::new()
-		.max_connections(5)
-		.connect(&get_env("DATABASE_URL")?).await
-		.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
-
-	actix_web::HttpServer::new(move || {
-		actix_web::App::new().data(pool.clone())
-			.service(index)
-	})
-		.bind("127.0.0.1:8080")?
-		.run().await
-}
-
-
-
-
-// extern crate base64;
-
-// extern crate rand;
-// use rand::Rng;
-// use rand::rngs::OsRng;
-
-// mod sites;
-// use sites::SiteName;
-
-
-// fn base64_encode(s: &[u8]) -> String {
-// 	base64::encode_config(s, base64::URL_SAFE)
-// }
-
-// pub fn generate_random_token() -> Option<String> {
+// use rand::{RngCore, OsRng};
+// fn generate_random_token() -> Option<String> {
 // 	let mut r = OsRng::new().ok()?;
 // 	let mut buf: [u8; 64] = [0; 64];
 // 	r.fill(&mut buf);
 
 // 	Some(base64_encode(&buf[..]))
 // }
-
-
-// const NEW_EMAIL_QUERY: &'static str = "insert into subscription (email, site_name, validation_token) values ($1, $2::site_name_enum, $3)";
-// const VERIFY_QUERY: &'static str = "update subscription set validation_token = null where validation_token = $1";
-// const UNSUBSCRIBE_QUERY: &'static str = "update subscription set unsubscribed_with = $1 where email = $2 and site_name = $3::site_name_enum"
 
 
 // fn empty_status(code: StatusCode) -> HttpResponse {
@@ -86,44 +36,27 @@ async fn main() -> std::io::Result<()> {
 // 	Ok(empty_status(StatusCode::NO_CONTENT))
 // }
 
-
 // #[derive(Debug, Error)]
 // pub enum GenericError {
 // 	NoContent,
 // 	BadRequest,
-// 	Unprocessable,
+// 	// Unprocessable,
 // 	InternalServer,
 // }
 
-// impl ResponseError for GenericError {
+// impl actix_web::ResponseError for GenericError {
 // 	fn error_response(&self) -> HttpResponse {
 // 		match *self {
 // 			GenericError::NoContent => empty_status(StatusCode::NO_CONTENT),
 // 			GenericError::BadRequest => empty_status(StatusCode::BAD_REQUEST),
-// 			GenericError::Unprocessable => empty_status(StatusCode::UNPROCESSABLE_ENTITY),
+// 			// GenericError::Unprocessable => empty_status(StatusCode::UNPROCESSABLE_ENTITY),
 // 			GenericError::InternalServer => empty_status(StatusCode::INTERNAL_SERVER_ERROR),
 // 		}
 // 	}
 // }
 
-
-// impl From<tokio_postgres::Error> for GenericError {
-// 	fn from(error: tokio_postgres::Error) -> Self {
-// 		let c = error.code();
-// 		if c == Some(&tokio_postgres::error::SqlState::INTEGRITY_CONSTRAINT_VIOLATION) {
-// 			GenericError::BadRequest
-// 		}
-// 		else if c == Some(&tokio_postgres::error::SqlState::UNIQUE_VIOLATION) {
-// 			GenericError::NoContent
-// 		}
-// 		else {
-// 			GenericError::InternalServer
-// 		}
-// 	}
-// }
-
-// impl From<actix::MailboxError> for GenericError {
-// 	fn from(_: actix::MailboxError) -> Self {
+// impl From<actix_web::MailboxError> for GenericError {
+// 	fn from(_: actix_web::MailboxError) -> Self {
 // 		GenericError::InternalServer
 // 	}
 // }
@@ -138,99 +71,125 @@ async fn main() -> std::io::Result<()> {
 // }
 
 
+// const NEW_EMAIL_QUERY: &'static str = "insert into subscription (email, validation_token) values ($1, $2::site_name_enum, $3)";
+// to signup a new person, we create a new cloud storage (or google drive) file with their base64 encoded email as the filename. the file is a bincoded struct representing their current status
+
+// const VERIFY_QUERY: &'static str = "update subscription set validation_token = null where validation_token = $1";
+// when a new person signs up, we need to create a secure random token they can use to verify their email. the verify route receives this token along with
+
+// const UNSUBSCRIBE_QUERY: &'static str = "update subscription set unsubscribed_with = $1 where email = $2"
 
 
-// #[derive(Debug, Serialize)]
-// pub struct MailgunForm {
-// 	to: String,
-// 	text: String,
-// 	from: &'static str,
-// 	subject: &'static str,
-// }
+#[derive(Debug, Serialize)]
+pub struct MailgunForm {
+	to: String,
+	text: String,
+	from: &'static str,
+	subject: &'static str,
+}
 
-
-// #[derive(Debug, Validate, Deserialize)]
-// struct NewEmailJsonInput {
-// 	#[validate(email)]
-// 	email: String,
-// 	site_name: SiteName,
-// }
 
 // #[derive(Debug)]
 // struct NewEmailMessage {
-// 	site_name: &'static str,
 // 	validation_token: String,
 // 	mailgun_url: &'static str,
 // 	mailgun_form: MailgunForm,
 // }
 
+#[derive(Debug, Deserialize, validator::Validate)]
+struct SubscribePayload {
+	#[validate(email)]
+	email: String,
+}
 
-// fn from_base64<'d, D>(deserializer: D) -> Result<String, D::Error>
-// 	where D: Deserializer<'d>
-// {
-// 	use serde::de::Error;
-// 	let de = String::deserialize(deserializer)?;
-// 	let buf = base64::decode_config(&de, base64::URL_SAFE).map_err(|_| Error::custom(""))?;
-// 	String::from_utf8(buf).map_err(|_| Error::custom(""))
-// }
+const TEXT_BODY: &'static str = "Yo here's an email {}.";
 
-// #[derive(Debug, Deserialize)]
-// struct VerifyEmailMessage {
-// 	validation_token: String,
-// }
+#[actix_web::post("/subscribe")]
+async fn subscribe(payload: web::Json<SubscribePayload>, data: web::Data<AppState>) -> impl Responder {
+	// send a verification email
+	let response = actix_web::client::Client::default()
+		.post("unknown")
+		.header(http::header::AUTHORIZATION, data.mailgun_header)
+		.send_form(&MailgunForm {
+			to: payload.email,
+			text: format!(TEXT_BODY, validation_url),
+			from: "no-reply@example.com",
+			subject: "verify",
+		})
+		.await?;
 
+	// store the status struct
 
-// http_client::post(msg.mailgun_url)
-// 	.header(actix_web::http::header::AUTHORIZATION, MAILGUN_API_KEY.to_owned())
-// 	.form(msg.mailgun_form)
+	// type Status = Vec<u8>;
+	// let target: Status = vec![1, 2, 3];
+	// let encoded = bincode::serialize(&target).unwrap();
+	// let decoded: Status = bincode::deserialize(&dbg!(encoded)[..]).unwrap();
+	// assert_eq!(target, decoded);
 
-
-// #[derive(Debug, Deserialize)]
-// struct UnsubscribeMessage {
-// 	#[serde(deserialize_with = "from_base64")]
-// 	email: String,
-// 	site_name: SiteName,
-// 	unsubscribed_with: String,
-// }
-
-
-// lazy_static! {
-// 	static ref MAILGUN_API_KEY: HeaderValue = {
-// 		let contents = get_env("MAILGUN_API_KEY");
-// 		let auth = base64_encode(contents.trim().as_bytes());
-// 		HeaderValue::from_bytes(format!("Basic {}", auth).as_bytes()).expect("couldn't construct valid header")
-// 	};
-// }
+	Ok("yo")
+}
 
 
-// fn main() {
-// 	std::thread::sleep(std::time::Duration::from_secs(5));
+#[derive(Debug, Deserialize)]
+struct VerifyPayload {
+	validation_token: String,
+}
 
-// 	assert!(MAILGUN_API_KEY.to_owned() != "");
+#[actix_web::post("/verify")]
+async fn verify(payload: web::Json<VerifyPayload>) -> impl Responder {
+	"yo"
+}
 
-// 	std::env::set_var("RUST_LOG", "micro_chimp=info");
-// 	pretty_env_logger::init();
 
-// 	let user = "rust_server_user";
-// 	let pass = get_env("SERVER_POSTGRES_PASSWORD");
+#[derive(Debug, Deserialize)]
+struct UnsubscribePayload {
+	#[serde(deserialize_with = "from_base64")]
+	email: String,
+	unsubscribed_with: String,
+}
 
-// 	let db_url = format!("postgres://{}:{}@database/database", user, pass);
+#[actix_web::post("/unsubscribe")]
+async fn unsubscribe(payload: web::Json<UnsubscribePayload>) -> impl Responder {
+	"yo"
+}
 
-// 	// start http server
-// 	let sys = System::new("micro_chimp");
-// 	server::new(move || {
-// 		let addr = PgConnection::connect(db_url.as_str());
 
-// 		App::with_state(State { db: addr })
-// 			.resource("/subscribe", |r| r.post().a(new_email))
-// 			.resource("/verify", |r| r.post().a(verify_email))
-// 			.resource("/unsubscribe", |r| r.post().a(unsubscribe))
-// 	})
-// 		// .backlog(8192)
-// 		.bind("0.0.0.0:5050")
-// 		.unwrap()
-// 		.start();
+fn std_err(message: String) -> std::io::Error {
+	std::io::Error::new(std::io::ErrorKind::Other, message)
+}
 
-// 	info!("Started http server: 0.0.0.0:5050");
-// 	let _ = sys.run();
-// }
+fn get_env(env_var: &'static str) -> std::io::Result<String> {
+	std::env::var(env_var)
+		.map_err(|_| std_err(format!("{} isn't set", env_var)))
+		.map(|v| v.trim().to_string())
+}
+
+struct AppState {
+	mailgun_header: http::HeaderValue
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+	let mailgun_header = http::HeaderValue::from_bytes(
+		format!(
+			"Basic {}",
+			base64_encode(get_env("MAILGUN_API_KEY")?.trim().as_bytes())
+		).as_bytes()
+	).map_err(|_| std_err("unable to construct header value".into()))?;
+
+
+	// std::env::set_var("RUST_LOG", "micro_chimp=info");
+	// pretty_env_logger::init();
+
+	actix_web::HttpServer::new(move || actix_web::App::new()
+		.data(AppState { mailgun_header: mailgun_header.clone() })
+		.service(subscribe)
+		.service(verify)
+		.service(unsubscribe)
+	)
+		.bind("0.0.0.0:5050")?
+		.run()
+		.await
+
+	// info!("Started http server: 0.0.0.0:5050");
+}
